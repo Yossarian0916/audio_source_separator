@@ -29,7 +29,7 @@ print(test_song_stft.shape)
 
 # load saved model
 root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-saved_model_dir = os.path.join(root, "notebook", "encode_decoder_separator")
-saved_model_path = os.path.join(saved_model_dir, "encode_decoder_separator_2020-01-06_20:58")
+saved_model_dir = os.path.join(root, "notebook", "encoder_decoder_separator")
+saved_model_path = os.path.join(saved_model_dir, "encoder_decoder_separator_2020-01-07_20:58")
 separator = tf.saved_model.load(saved_model_path)
 output = [separator.call(song_stft_clip) for song_stft_clip in test_song_stft]

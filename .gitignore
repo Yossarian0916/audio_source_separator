@@ -2,7 +2,7 @@
 # dataset: DSD100, MUSDB18
 # size is too large, can be downloaded on their website
 data/
-checkpoints/
+notebooks/checkpoints
 
 # remove pycharm settings
 .idea/

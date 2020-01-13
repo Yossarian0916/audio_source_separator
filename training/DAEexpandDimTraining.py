@@ -4,7 +4,7 @@ from tensorflow import keras
 import os
 
 import models.DAEexpandDimSeparator
-from utils.helper import get_filenames, istft
+from utils.helper import get_filenames
 from utils.dataset import tfrecord2dataset
 
 

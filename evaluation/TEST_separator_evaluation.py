@@ -5,7 +5,8 @@ import tensorflow as tf
 import os
 import sys
 
-from utils.helper import get_stft, istft, get_filenames
+from utils.helper import get_stft, get_filenames
+from evaluation.metrics import bss_eval
 
 
 # loading data from disks
@@ -30,9 +31,13 @@ dsd100_vocals = [os.path.join(song_path, 'vocals.wav')
 
 # prepare one song to test separator quality
 test_song = dsd100_songs[0]
+test_song_vocal = dsd100_vocals[0]
+test_song_bass = dsd100_bass[0]
+test_song_drum = dsd100_drums[0]
+test_song_other = dsd100_other[0]
+
 test_song_stft = get_stft(test_song)
 test_song_stft = tf.expand_dims(test_song_stft, axis=1)
-print(test_song_stft.shape)
 
 # load saved model
 root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
@@ -40,4 +45,22 @@ saved_model_dir = os.path.join(root, "notebook", "checkpoints")
 saved_model_path = os.path.join(
     saved_model_dir, "dae_reconstruction_separator", "dae_recon?optimizer=SGD?loss=MSE?lr=0.01?time=2020-01-09_08:44")
 separator = tf.saved_model.load(saved_model_path)
-output = [separator.call(song_stft_clip) for song_stft_clip in test_song_stft]
+
+separator_output = list()
+for i in range(len(test_song_stft)):
+    audio = tf.convert_to_tensor(test_song_stft[None,i,:,:], dtype=tf.float32)
+    separator_output.append(separator.call(audio))
+output_audio = np.concatenate(separator_output, axis=0)
+
+def concat(audio_track):
+    reconstructed = [librosa.griffinlim(clip) for clip in audio_track]
+    reconstructed = np.concatenate(reconstructed, axis=0)
+    return reconstructed
+
+
+vocal_track = concat(output_audio[:,0,:,:])
+bass_track = concat(output_audio[:,1,:,:])
+drum_track = concat(output_audio[:,2,:,:])
+other_track = concat(output_audio[:,3,:,:])
+
+# evaluation, bss_eval

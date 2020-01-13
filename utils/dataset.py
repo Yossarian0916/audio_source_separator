@@ -12,19 +12,48 @@ from utils.config import DATASET, STEM_FEAT
 # config parameters
 feat_names = ['mix', 'vocals', 'bass', 'drums', 'other']
 batch_size = DATASET['BATCH_SIZE']
+cpu_cores = mp.cpu_count()
 
 
-def tfrecord2dataset(filenames, n_readers=4,
-                     batch_size=batch_size, n_parse_threads=4,
-                     shuffle_buffer_size=10000):
+def get_filepath(basename, stem_type, dataset_name):
+    current_path = os.path.abspath(__file__)
+    utils_path = os.path.dirname(current_path)
+    root = os.path.dirname(utils_path)
+    data_dir = os.path.join(root, 'data')
+    filepath = os.path.join(data_dir, dataset_name, stem_type, basename)
+    return filepath
+
+
+def tfrecord2dataset(filenames, n_readers=cpu_cores,
+                     batch_size=batch_size, n_parse_threads=cpu_cores,
+                     shuffle_buffer_size=20000):
     dataset = tf.data.TFRecordDataset(filenames)
+    
+    # read zip tfrecord files concurrently, each time process n_readers files
+    # since eache tfrecord is a single sample, interleave is useless here
+    # when you store multiple samples in one tfrecord, please uncomment this 
+    # to speed up reading and to save memory usage
+    #dataset = dataset.interleave(
+    #    lambda filename: tf.data.TFRecordDataset(filename),
+    #    cycle_length = n_readers
+    #)
+    
+    # for perfect shuffling, the buffer size should be greater than the full size of the dataset
+    dataset.shuffle(shuffle_buffer_size)
     # repeat the dataset endless times
     dataset = dataset.repeat()
-    # read zip tfrecord files concurrently, each time process n_readers files
-    dataset = dataset.interleave(
-        lambda filename: tf.data.TFRecordDataset(filenames),
-        cycle_length=n_readers
-    )
+    # concurrently parse each tfrecord
+    dataset = dataset.map(parse_records, num_parallel_calls=n_parse_threads)
+    # create batches
+    dataset = dataset.batch(batch_size)
+    return dataset
+
+
+def tfrecord2dataset_nonrepeat(filenames,
+                         batch_size=batch_size,
+                         n_parse_threads=cpu_cores,
+                         shuffle_buffer_size=20000):
+    dataset = tf.data.TFRecordDataset(filenames)
     # for perfect shuffling, the buffer size should be greater than the full size of the dataset
     dataset.shuffle(shuffle_buffer_size)
     # concurrently parse each tfrecord
@@ -34,27 +63,19 @@ def tfrecord2dataset(filenames, n_readers=4,
     return dataset
 
 
-def _float_feature(value):
-    """returns a float_list from a float/double"""
-    return tf.train.Feature(float_list=tf.train.FloatList(value=value.reshape(-1)))
-
-
-def _int64_feature(value):
-    """returns an int64_list from a bool/enum/int/unit"""
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
-
-
-def serialize_example(audio_tracks, feat_names=feat_names):
-    # get shape of each 2D array, because tf.train.FloatList only accepts 'flat' list
-    freq_channels = audio_tracks['mix'].shape[0]
-    time_frames = audio_tracks['mix'].shape[1]
-    # create example
-    feature = {key: _float_feature(audio_tracks[key]) for key in feat_names}
-    feature['freq_channels'] = _int64_feature(freq_channels)
-    feature['time_frames'] = _int64_feature(time_frames)
-    features = tf.train.Features(feature=feature)
-    example = tf.train.Example(features=features)
-    return example.SerializeToString()
+def parse_records(serialized_example, feat_names=feat_names):
+    feat_description = {key: tf.io.FixedLenSequenceFeature(
+        [], dtype=tf.float32, allow_missing=True) for key in feat_names}
+    feat_description['freq_channels'] = tf.io.FixedLenFeature([], tf.int64)
+    feat_description['time_frames'] = tf.io.FixedLenFeature([], tf.int64)
+    sample = tf.io.parse_single_example(serialized_example, feat_description)
+    # reshape each flattened array to 2D array
+    freq_channels = tf.cast(sample['freq_channels'], tf.int64)
+    time_frames = tf.cast(sample['time_frames'], tf.int64)
+    for key in feat_names:
+        sample[key] = tf.reshape(
+            sample[key], tf.stack([freq_channels, time_frames]))
+    return [sample['mix']], [sample['vocals'], sample['bass'], sample['drums'], sample['other']]
 
 
 def write_records(sample, basename, feat_names=feat_names, compression_type=None):
@@ -95,29 +116,28 @@ def write_records(sample, basename, feat_names=feat_names, compression_type=None
         with tf.io.TFRecordWriter(filename_fullpath, tfrecord_opt) as writer:
             writer.write(serialize_example(audio_tracks))
 
-
-def parse_records(serialized_example, feat_names=feat_names):
-    feat_description = {key: tf.io.FixedLenSequenceFeature(
-        [], dtype=tf.float32, allow_missing=True) for key in feat_names}
-    feat_description['freq_channels'] = tf.io.FixedLenFeature([], tf.int64)
-    feat_description['time_frames'] = tf.io.FixedLenFeature([], tf.int64)
-    sample = tf.io.parse_single_example(serialized_example, feat_description)
-    # reshape each flattened array to 2D array
-    freq_channels = tf.cast(sample['freq_channels'], tf.int64)
-    time_frames = tf.cast(sample['time_frames'], tf.int64)
-    for key in feat_names:
-        sample[key] = tf.reshape(
-            sample[key], tf.stack([freq_channels, time_frames]))
-    return [sample['mix']], [sample['vocals'], sample['bass'], sample['drums'], sample['other']]
+            
+def _float_feature(value):
+    """returns a float_list from a float/double"""
+    return tf.train.Feature(float_list=tf.train.FloatList(value=value.reshape(-1)))
 
 
-def get_filepath(basename, stem_type, dataset_name):
-    current_path = os.path.abspath(__file__)
-    utils_path = os.path.dirname(current_path)
-    root = os.path.dirname(utils_path)
-    data_dir = os.path.join(root, 'data')
-    filepath = os.path.join(data_dir, dataset_name, stem_type, basename)
-    return filepath
+def _int64_feature(value):
+    """returns an int64_list from a bool/enum/int/unit"""
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def serialize_example(audio_tracks, feat_names=feat_names):
+    # get shape of each 2D array, because tf.train.FloatList only accepts 'flat' list
+    freq_channels = audio_tracks['mix'].shape[0]
+    time_frames = audio_tracks['mix'].shape[1]
+    # create example
+    feature = {key: _float_feature(audio_tracks[key]) for key in feat_names}
+    feature['freq_channels'] = _int64_feature(freq_channels)
+    feature['time_frames'] = _int64_feature(time_frames)
+    features = tf.train.Features(feature=feature)
+    example = tf.train.Example(features=features)
+    return example.SerializeToString()
 
 
 def create_sample(basename='Dev', dataset_name='DSD100', feat_names=feat_names):

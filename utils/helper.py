@@ -76,41 +76,4 @@ def get_phase(path):
         stft_phase = wav2phase(wav)
         clips = np.concatenate((clips, stft_phase), axis=0)
     return clips
-
-
-def istft(magnitude, phase=None, rebuild_iter=10, n_fft=N_FFT, hop_length=HOP_LEN, win_length=WIN_LEN):
-    if phase is not None:
-        if rebuild_iter > 0:
-            # refine audio given initial phase with a number of iterations
-            return rebuild_phase(magnitude, n_fft, hop_length, win_length, rebuild_iter, phase)
-        # reconstructing the new complex matrix
-        stft_complx_matrix = magnitude * \
-            np.exp(phase * 1j)  # magnitude * e^(j*phase)
-        audio = librosa.istft(stft_complx_matrix, hop_length, win_length)
-    else:
-        audio = rebuild_phase(magnitude, n_fft, hop_length,
-                              win_length, rebuild_iter)
-    return audio
-
-
-def rebuild_phase(magnitude, n_fft, hop_length, win_length, rebuild_iter=10, init_phase=None):
-    '''
-    Griffin-Lim algorithm for reconstructing the phase for a given magnitude spectrogram,
-    optionally with a given intial phase.
-    '''
-    for i in range(rebuild_iter):
-        if i == 0:
-            if init_phase is None:
-                reconstruction = np.random.random_sample(
-                    magnitude.shape) + 1j * (2 * np.pi * np.random.random_sample(magnitude.shape) - np.pi)
-            else:
-                # e^(j*phase), so that angle => phase
-                reconstruction = np.exp(init_phase * 1j)
-        else:
-            reconstruction = librosa.stft(reconstruction, n_fft, hop_length)
-        spectrum = magnitude * np.exp(1j * np.angle(reconstruction))
-        if i == rebuild_iter - 1:
-            audio = librosa.istft(spectrum, hop_length, win_length)
-        else:
-            audio = librosa.istft(spectrum, hop_length)
-    return audio
+    

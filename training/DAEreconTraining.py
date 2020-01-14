@@ -63,7 +63,7 @@ def train(model,
         print('START of Epoch %d' % (epoch,))
 
         # iterate over batches of the dataset
-        for step, (x_batch_train, y_batch_train) in enumerate(train_dataset):
+        for step, (x_batch_train, y_batch_train) in enumerate(dataset):
 
             # Open a GradientTape to record the operations run
             with tf.GradientTape() as tape:

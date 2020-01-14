@@ -17,5 +17,5 @@ def plot_curve(results, size=(16, 9)):
     plt.show()
 
 
-def plot_model(model, name):
+def plot_model(model, name='model.png'):
     keras.utils.plot_model(model, name, show_shapes=True)

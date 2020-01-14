@@ -4,13 +4,13 @@ from layers.conv1D_layer import Conv1DTranspose
 from layers.encoder_decoder_layer import Encoder, Decoder
 
 
-class DenoisingAutoencoder(keras.Model):
+class Autoencoder(keras.Model):
     def __init__(self,
                  frequency_bins,
                  time_frames,
-                 name='denoising_autoencoder',
+                 name='autoencoder_skip_conn',
                  **kwargs):
-        super(DenoisingAutoencoder, self).__init__(name=name, **kwargs)
+        super(Autoencoder, self).__init__(name=name, **kwargs)
         self.encoder = Encoder(frequency_bins, time_frames)
         self.decoder = Decoder(frequency_bins, time_frames)
 
@@ -37,7 +37,7 @@ class AutoencoderExpandDim(keras.Model):
                 keras.layers.Reshape((frequency_bins*4, time_frames))
             ]
         )
-        
+
     @tf.function
     def call(self, inputs):
         latent = self.encoder(inputs)

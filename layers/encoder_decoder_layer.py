@@ -14,19 +14,21 @@ class Encoder(keras.layers.Layer):
         super(Encoder, self).__init__(name=name, **kwargs)
         self.freq_bins = frequency_bins
         self.time_frames = time_frames
-        self.conv1 = tfa.layers.WeightNormalization(
-            keras.layers.Conv1D(filters=self.freq_bins // 2,
-                                kernel_size=3, padding='same'),
-            keras.layers.LeakyReLU(alpha=0.01))
-        self.conv2 = tfa.layers.WeightNormalization(
-            keras.layers.Conv1D(filters=self.freq_bins // 4,
-                                kernel_size=3, strides=1, padding='same'),
-            keras.layers.LeakyReLU(alpha=0.01))
-        self.conv3 = tfa.layers.WeightNormalization(
-            keras.layers.Conv1D(filters=self.freq_bins // 8,
-                                kernel_size=3, strides=1, padding='same'),
-            keras.layers.LeakyReLU(alpha=0.01))
-    
+        self.conv1 = keras.layers.Conv1D(filters=self.freq_bins // 2,
+                                         kernel_size=3,
+                                         padding='same',
+                                         activation='relu')
+        self.conv2 = keras.layers.Conv1D(filters=self.freq_bins // 4,
+                                         kernel_size=3,
+                                         strides=1,
+                                         padding='same',
+                                         activation='relu')
+        self.conv3 = keras.layers.Conv1D(filters=self.freq_bins // 8,
+                                         kernel_size=3,
+                                         strides=1,
+                                         padding='same',
+                                         activation='relu')
+
     @tf.function
     def call(self, inputs):
         reshaped_inputs = keras.layers.Reshape(
@@ -41,7 +43,7 @@ class Decoder(keras.layers.Layer):
     def __init__(self,
                  frequency_bins,
                  time_frames,
-                 name='decoder_skip_conn',
+                 name='decoder',
                  **kwargs):
         super(Decoder, self).__init__(name=name, **kwargs)
         self.freq_bins = frequency_bins
@@ -51,7 +53,7 @@ class Decoder(keras.layers.Layer):
         self.tconv5 = Conv1DTranspose(
             filters=self.freq_bins // 2, kernel_size=3)
         self.tconv6 = Conv1DTranspose(filters=self.freq_bins, kernel_size=3)
-    
+
     @tf.function
     def call(self, inputs):
         conv1, conv2, conv3 = inputs

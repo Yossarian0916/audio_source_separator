@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from models.autoencoder_model import DenoisingAutoencoder, AutoencoderExpandDim
+from models.autoencoder import Autoencoder, AutoencoderExpandDim
 
 
 class Separator(keras.Model):
@@ -18,13 +18,13 @@ class Separator(keras.Model):
         self.freq_bins = frequency_bins
         self.time_frames = time_frames
         # denoising autoencoder reconstructed input music STFT
-        self.reconstruction = DenoisingAutoencoder(frequency_bins, time_frames)
+        self.reconstruction = Autoencoder(frequency_bins, time_frames)
         # denoising autoencoder separator for STEM
-        self.vocals_sep = DenoisingAutoencoder(frequency_bins, time_frames)
-        self.bass_sep = DenoisingAutoencoder(frequency_bins, time_frames)
-        self.drums_sep = DenoisingAutoencoder(frequency_bins, time_frames)
-        self.other_sep = DenoisingAutoencoder(frequency_bins, time_frames)
-    
+        self.vocals_sep = Autoencoder(frequency_bins, time_frames)
+        self.bass_sep = Autoencoder(frequency_bins, time_frames)
+        self.drums_sep = Autoencoder(frequency_bins, time_frames)
+        self.other_sep = Autoencoder(frequency_bins, time_frames)
+
     @tf.function
     def call(self, inputs):
         reconstruction_vec = self.reconstruction(inputs)

@@ -48,9 +48,11 @@ separator = tf.saved_model.load(saved_model_path)
 
 separator_output = list()
 for i in range(len(test_song_stft)):
-    audio = tf.convert_to_tensor(test_song_stft[None,i,:,:], dtype=tf.float32)
+    audio = tf.convert_to_tensor(
+        test_song_stft[None, i, :, :], dtype=tf.float32)
     separator_output.append(separator.call(audio))
 output_audio = np.concatenate(separator_output, axis=0)
+
 
 def concat(audio_track):
     reconstructed = [librosa.griffinlim(clip) for clip in audio_track]
@@ -58,9 +60,9 @@ def concat(audio_track):
     return reconstructed
 
 
-vocal_track = concat(output_audio[:,0,:,:])
-bass_track = concat(output_audio[:,1,:,:])
-drum_track = concat(output_audio[:,2,:,:])
-other_track = concat(output_audio[:,3,:,:])
+vocal_track = concat(output_audio[:, 0, :, :])
+bass_track = concat(output_audio[:, 1, :, :])
+drum_track = concat(output_audio[:, 2, :, :])
+other_track = concat(output_audio[:, 3, :, :])
 
 # evaluation, bss_eval

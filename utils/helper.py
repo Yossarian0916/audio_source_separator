@@ -76,4 +76,3 @@ def get_phase(path):
         stft_phase = wav2phase(wav)
         clips = np.concatenate((clips, stft_phase), axis=0)
     return clips
-    

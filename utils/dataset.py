@@ -24,20 +24,12 @@ def get_filepath(basename, stem_type, dataset_name):
     return filepath
 
 
-def tfrecord2dataset(filenames, n_readers=cpu_cores,
-                     batch_size=batch_size, n_parse_threads=cpu_cores,
+def tfrecord2dataset(filenames,
+                     n_readers=cpu_cores,
+                     batch_size=batch_size,
+                     n_parse_threads=cpu_cores,
                      shuffle_buffer_size=20000):
     dataset = tf.data.TFRecordDataset(filenames)
-    
-    # read zip tfrecord files concurrently, each time process n_readers files
-    # since eache tfrecord is a single sample, interleave is useless here
-    # when you store multiple samples in one tfrecord, please uncomment this 
-    # to speed up reading and to save memory usage
-    #dataset = dataset.interleave(
-    #    lambda filename: tf.data.TFRecordDataset(filename),
-    #    cycle_length = n_readers
-    #)
-    
     # for perfect shuffling, the buffer size should be greater than the full size of the dataset
     dataset.shuffle(shuffle_buffer_size)
     # repeat the dataset endless times
@@ -50,9 +42,9 @@ def tfrecord2dataset(filenames, n_readers=cpu_cores,
 
 
 def tfrecord2dataset_nonrepeat(filenames,
-                         batch_size=batch_size,
-                         n_parse_threads=cpu_cores,
-                         shuffle_buffer_size=20000):
+                               batch_size=batch_size,
+                               n_parse_threads=cpu_cores,
+                               shuffle_buffer_size=20000):
     dataset = tf.data.TFRecordDataset(filenames)
     # for perfect shuffling, the buffer size should be greater than the full size of the dataset
     dataset.shuffle(shuffle_buffer_size)
@@ -116,7 +108,7 @@ def write_records(sample, basename, feat_names=feat_names, compression_type=None
         with tf.io.TFRecordWriter(filename_fullpath, tfrecord_opt) as writer:
             writer.write(serialize_example(audio_tracks))
 
-            
+
 def _float_feature(value):
     """returns a float_list from a float/double"""
     return tf.train.Feature(float_list=tf.train.FloatList(value=value.reshape(-1)))

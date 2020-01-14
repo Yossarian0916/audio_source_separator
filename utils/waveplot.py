@@ -9,14 +9,17 @@ def read_wav(file, duration):
     time_series, sample_rate = librosa.load(file, duration=duration)
     return time_series, sample_rate
 
+
 def stft(time_series):
     stft_matrix = librosa.stft(time_series)
-    magnitude, phase = librosa.magphase(stft_mat)
+    magnitude, phase = librosa.magphase(stft_matrix)
     return magnitude, phase
+
 
 def show_waves(sound, sample_rate):
     librosa.display.waveplot(np.array(sound), sample_rate)
     plt.show()
+
 
 def show_stft_log_spec(sound, sample_rate):
     # compute stft spectrogram, y axis in logrithmic scale
@@ -28,6 +31,7 @@ def show_stft_log_spec(sound, sample_rate):
     plt.tight_layout()
     plt.show()
 
+
 def show_melspecgram(sound, sample_rate):
     # compute mel-spectrogram, y axis is in logrithmic scale
     melspec = librosa.feature.melspectrogram(sound, sample_rate)
@@ -36,4 +40,3 @@ def show_melspecgram(sound, sample_rate):
     # plot
     plt.colorbar(format='%+2.0f dB')
     plt.show()
-

@@ -3,6 +3,7 @@
 # size is too large, can be downloaded on their website
 data/
 notebooks/checkpoints/
+notebooks/logs/
 
 # remove pycharm settings
 .idea/

@@ -67,7 +67,7 @@ def parse_records(serialized_example, feat_names=feat_names):
     for key in feat_names:
         sample[key] = tf.reshape(
             sample[key], tf.stack([freq_channels, time_frames]))
-    return [sample['mix']], [sample['vocals'], sample['bass'], sample['drums'], sample['other']]
+    return tf.stack([sample['mix']]), tf.stack([sample['vocals'], sample['bass'], sample['drums'], sample['other']])
 
 
 def write_records(sample, basename, feat_names=feat_names, compression_type=None):
@@ -83,11 +83,11 @@ def write_records(sample, basename, feat_names=feat_names, compression_type=None
     #           'other': wav file}
     #
     # each wav audio is chopped into 2-second-long clips, thus 87 frames
-    # audio_clips = {'mix': (50, 2049, 87),
-    #                'vocals': (50, 2049, 87),
-    #                'bass': (50, 2049, 87),
-    #                'drums': (50, 2049, 87),
-    #                'other':(50, 2049, 87)}
+    # audio_clips = {'mix': (None, 2049, 87),
+    #                'vocals': (None, 2049, 87),
+    #                'bass': (None, 2049, 87),
+    #                'drums': (None, 2049, 87),
+    #                'other':(None, 2049, 87)}
     audio_clips = {key: None for key in feat_names}
     for feat in feat_names:
         audio_clips[feat] = wav2stft(sample[feat])
@@ -132,7 +132,7 @@ def serialize_example(audio_tracks, feat_names=feat_names):
     return example.SerializeToString()
 
 
-def create_sample(basename='Dev', dataset_name='DSD100', feat_names=feat_names):
+def create_samples(basename='Dev', dataset_name='DSD100', feat_names=feat_names):
     mixture_songs_filepath = get_filepath(basename, 'Mixtures', dataset_name)
     stem_sources_filepath = get_filepath(basename, 'Sources', dataset_name)
     song_names = sorted(os.listdir(mixture_songs_filepath))
@@ -170,9 +170,9 @@ def generate_tfrecords_files(usage):
     basename = os.path.join(output_dir, usage)
 
     if usage == 'train':
-        samples = create_sample(basename='Dev')
+        samples = create_samples(basename='Dev')
     if usage == 'test':
-        samples = create_sample(basename='Test')
+        samples = create_samples(basename='Test')
     write_records_partial = partial(write_records, basename=basename)
     # use process pool to create tfrecords files
     num_cores = os.cpu_count()

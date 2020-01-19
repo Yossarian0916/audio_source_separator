@@ -4,44 +4,61 @@ from tensorflow import keras
 from layers.conv1D_layer import Conv1DTranspose
 
 
-class BlockConv(keras.layers.Layer):
+class ResBlockConv(keras.layers.Layer):
     def __init__(self,
-                 filter_size,
+                 filters,
                  kernel_size=3,
-                 name='BlockConv',
+                 strides=1,
+                 padding='same',
+                 activation=None,
+                 kernel_initializer='glorot_normal',
+                 name=None,
                  **kwargs):
-        super(BlockConv, self).__init__(name=name, **kwargs)
-        self.filter_size = filter_size
-        self.kernel_size = kernel_size
-        self.conv1d = keras.layers.Conv1D(filters=self.filter_size,
-                                          kernel_size=self.kernel_size,
-                                          padding='same')
-        self.activation = self.activation = keras.layers.LekayReLU(alpha=0.01)
+        super(ResBlockConv, self).__init__(name=name, **kwargs)
+        self.conv1d = keras.layers.Conv1D(filters=filters, 
+                                          kernel_size=kernel_size,
+                                          strides=strides,
+                                          padding=padding,
+                                          activation=None,
+                                          kernel_initializer=kernel_initializer)
+        self.activation = keras.layers.LekayReLU(alpha=0.01)
 
+    def get_config(self):
+        pass
+    
     @tf.function
-    def call(self, inputs):
-        residual = inputs
+    def call(self, x):
+        residual = x
         out = self.conv1d(out)
         out = out + residual
         return self.activation(out)
 
 
-class BlockTConv(keras.layers.Layer):
+class ResBlockTConv(keras.layers.Layer):
     def __init__(self,
-                 filter_size,
+                 filters,
                  kernel_size=3,
-                 name='BlockTConv',
+                 strides=1,
+                 padding='same',
+                 activation=None,
+                 kernel_initializer='glorot_normal',
+                 name=None,
                  **kwargs):
-        super(BlockTConv, self).__init__(name=name, **kwargs)
-        self.filter_size = filter_size
-        self.kernel_size = kernel_size
-        self.tconv1d = Conv1DTranspose(filters=self.filter_size,
-                                       kernel_size=self.kernel_size)
+        super(ResBlockTConv, self).__init__(name=name, **kwargs)
+        self.tconv1d = Conv1DTranspose(filters=filters, 
+                                       kernel_size=kernel_size,
+                                       strides=strides,
+                                       padding=padding,
+                                       activation=None,
+                                       kernel_initializer=kernel_initializer)
         self.activation = self.activation = keras.layers.LekayReLU(alpha=0.01)
 
+    def get_config(self):
+        pass
+    
     @tf.function
-    def call(self, inputs):
-        residual = inputs
+    def call(self, x):
+        residual = x
         out = self.tconv1d(out)
         out = out + residual
         return self.activation(out)

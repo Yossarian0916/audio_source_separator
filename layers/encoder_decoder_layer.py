@@ -28,6 +28,9 @@ class Encoder(keras.layers.Layer):
                                          strides=1,
                                          padding='same',
                                          activation='relu')
+        
+    def get_config(self):
+        return {'freq_bins': self.freq_bins, 'time_frames': self.time_frames}
 
     @tf.function
     def call(self, inputs):
@@ -53,6 +56,9 @@ class Decoder(keras.layers.Layer):
         self.tconv5 = Conv1DTranspose(
             filters=self.freq_bins // 2, kernel_size=3)
         self.tconv6 = Conv1DTranspose(filters=self.freq_bins, kernel_size=3)
+        
+    def get_config(self):
+        return {'freq_bins': self.freq_bins, 'time_frames': self.time_frames}
 
     @tf.function
     def call(self, inputs):

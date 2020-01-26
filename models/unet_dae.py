@@ -19,7 +19,7 @@ class UNet_Autoencoder:
     def crop_and_concat(self, x1, x2):
         if x2 is None:
             return x1
-        x1 = crop(x1, x2.get_shape().as_list())
+        x1 = self.crop(x1, x2.get_shape().as_list())
         return tf.concat([x1, x2], axis=2)
 
     def crop(self, tensor, target_shape):
@@ -57,44 +57,44 @@ class UNet_Autoencoder:
             shape=(self.bins, self.frames), name='mix_input')
 
         # encoder
-        conv1 = conv1d_bn(self.frames, 3, name='conv1')(mix_input)
+        conv1 = self.conv1d_bn(self.frames, 3, name='conv1')(mix_input)
         maxpool1 = keras.layers.MaxPool1D(
             2, padding='same', name='maxpool1')(conv1)
-        conv2 = conv1d_bn(self.frames * 2, 3, name='conv2')(maxpool1)
+        conv2 = self.conv1d_bn(self.frames * 2, 3, name='conv2')(maxpool1)
         maxpool2 = keras.layers.MaxPool1D(
             2, padding='same', name='maxpool2')(conv2)
-        conv3 = conv1d_bn(self.frames * 3, 3, name='conv3')(maxpool2)
+        conv3 = self.conv1d_bn(self.frames * 3, 3, name='conv3')(maxpool2)
         maxpool3 = keras.layers.MaxPool1D(
             pool_size=2, padding='same', name='maxpool3')(conv3)
-        conv4 = conv1d_bn(self.frames * 4, 3, name='conv4')(maxpool3)
+        conv4 = self.conv1d_bn(self.frames * 4, 3, name='conv4')(maxpool3)
 
         # decoder
         conv4_upsampling = keras.layers.UpSampling1D(
             2, name='upsample1')(conv4)
-        conv5_input = crop_and_concat(conv4_upsampling, conv3)
-        conv5 = conv1d_bn(self.frames * 3, 3, padding='same',
-                          name='conv5')(conv5_input)
+        conv5_input = self.crop_and_concat(conv4_upsampling, conv3)
+        conv5 = self.conv1d_bn(self.frames * 3, 3, padding='same',
+                               name='conv5')(conv5_input)
 
         conv5_upsampling = keras.layers.UpSampling1D(
             2, name='upsample2')(conv5)
-        conv6_input = crop_and_concat(conv5_upsampling, conv2)
-        conv6 = conv1d_bn(self.frames * 2, 3, padding='same',
-                          name='conv6')(conv6_input)
+        conv6_input = self.crop_and_concat(conv5_upsampling, conv2)
+        conv6 = self.conv1d_bn(self.frames * 2, 3, padding='same',
+                               name='conv6')(conv6_input)
         conv6_upsampling = keras.layers.UpSampling1D(
             2, name='upsample3')(conv6)
 
-        conv7_input = crop_and_concat(conv6_upsampling, conv1)
-        conv7 = conv1d_bn(self.frames*4, 3, padding='same',
-                          name='conv7')(conv7_input)
+        conv7_input = self.crop_and_concat(conv6_upsampling, conv1)
+        conv7 = self.conv1d_bn(self.frames*4, 3, padding='same',
+                               name='conv7')(conv7_input)
 
         # denoising autoencoder separators
-        vocals = autoencoder(self.bins, self.frames, name='vocals')(
+        vocals = self.autoencoder(name='vocals')(
             conv7[:, :, :self.frames])
-        bass = autoencoder(self.bins, self.frames, name='bass')(
+        bass = self.autoencoder(name='bass')(
             conv7[:, :, self.frames:self.frames*2])
-        drums = autoencoder(self.bins, self.frames, name='drums')(
+        drums = self.autoencoder(name='drums')(
             conv7[:, :, self.frames*2:self.frames*3])
-        other = autoencoder(self.bins, self.frames, name='other')(
+        other = self.autoencoder(name='other')(
             conv7[:, :, self.frames*3:])
 
         return keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)

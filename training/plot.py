@@ -1,11 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
-
-from datetime import datetime
-import os
-import sys
+import pandas as pd
 
 
 def plot_curve(results, size=(16, 9)):
@@ -19,3 +14,9 @@ def plot_curve(results, size=(16, 9)):
 
 def plot_model(model, name='model.png'):
     keras.utils.plot_model(model, name, show_shapes=True)
+
+
+def plot_learning_curves(history):
+    pd.DataFrame(history.history).plot(figsize=(16, 10))
+    plt.grid(True)
+    plt.show()

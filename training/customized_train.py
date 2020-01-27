@@ -7,12 +7,36 @@ from utils.helper import get_filenames
 from utils.dataset import tfrecord2dataset
 
 
-def save_model(model, save_dir, file_name):
-    if not os.path.exists(save_dir):
-        os.mkdir(save_dir)
+def load_dsd100_dataset(batch_size):
+    # data dir path
+    root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+    data_dir = os.path.join(root, 'data')
+    # parse tfrecords
+    dsd100_train_dir = os.path.join(data_dir, 'dsd100_train_tfrecords')
+    dsd100_train_tfrecords = get_filenames(dsd100_train_dir+'/*')
+    dsd100_test_dir = os.path.join(data_dir, 'dsd100_test_tfrecords')
+    dsd100_test_tfrecords = get_filenames(dsd100_test_dir+'/*')
+    # training dataset
+    train_tfrecords = dsd100_train_tfrecords + \
+        dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
+    train_dataset = tfrecord2dataset(train_tfrecords, batch_size)
+    # validation dataset
+    valid_tfrecords = dsd100_test_tfrecords[len(dsd100_test_tfrecords)//2:]
+    valid_dataset = tfrecord2dataset(valid_tfrecords, batch_size)
+
+    train_data_size = len(train_tfrecords)
+    valid_data_size = len(valid_tfrecords)
+    return (train_dataset, valid_dataset), (train_data_size, valid_data_size)
+
+
+def save_model(model, file_name):
+    root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+    saved_model_dir = os.path.join(root, 'saved_model')
+    if not os.path.exists(saved_model_dir):
+        os.mkdir(saved_model_dir)
     date_time = datetime.now().strftime("%Y%m%d_%H%M")
     saved_model_path = os.path.join(
-        save_dir, file_name+"?time={}".format(date_time))
+        saved_model_dir, file_name+"?time={}.h5".format(date_time))
     tf.saved_model.save(model, saved_model_path)
 
 

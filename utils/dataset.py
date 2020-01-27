@@ -67,8 +67,8 @@ def parse_records(serialized_example, feat_names=feat_names):
     for key in feat_names:
         sample[key] = tf.reshape(
             sample[key], tf.stack([freq_channels, time_frames]))
-    return ({'mix_input':sample['mix']}, 
-            {'vocals':sample['vocals'], 'bass':sample['bass'], 'drums':sample['drums'], 'other':sample['other']})
+    return ({'mix': sample['mix']},
+            {'vocals': sample['vocals'], 'bass': sample['bass'], 'drums': sample['drums'], 'other': sample['other']})
 
 
 def write_records(sample, basename, feat_names=feat_names, compression_type=None):

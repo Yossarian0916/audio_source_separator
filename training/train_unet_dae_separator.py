@@ -20,10 +20,10 @@ dsd100_test_dir = os.path.join(data_dir, 'dsd100_test_tfrecords')
 dsd100_test_tfrecords = get_filenames(dsd100_test_dir+'/*')
 # training dataset
 train_tfrecords = dsd100_train_tfrecords + \
-    dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
+    dsd100_test_tfrecords[len(dsd100_test_tfrecords)//2:]
 train_dataset = tfrecord2dataset(train_tfrecords, BATCH_SIZE)
 # validation dataset
-valid_tfrecords = dsd100_test_tfrecords[len(dsd100_test_tfrecords)//2:]
+valid_tfrecords = dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
 valid_dataset = tfrecord2dataset(valid_tfrecords, BATCH_SIZE)
 
 TRAIN_DATA_SIZE = len(train_tfrecords)
@@ -32,28 +32,37 @@ VAL_DATA_SIZE = len(valid_tfrecords)
 # separator model
 separator = UNet_Autoencoder(2049, 87)
 model = separator.get_model()
+model.summary()
 
 
 def decay(epoch, lr):
-    if epoch % 20 == 0 and epoch != 0:
+    if epoch % 5 == 0 and epoch != 0:
         return 0.1 * lr
     else:
         return lr
 
 
-log_dir = "./logs/unet_wide&deep_separator/" + \
+class ShowLearnintRate(tf.keras.callbacks.Callback):
+    def on_epoch_begin(self, epoch, logs=None):
+        if epoch % 10 == 0:
+            print('\nEpoch %05d: Learning rate is %6.4f.' %
+                  (epoch, self.model.optimizer.lr.numpy()))
+
+
+log_dir = "./logs/unet_dae_separator/" + \
     datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # callbacks: early-stopping, tensorboard
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=1e-3, verbose=True, patience=10),
+        monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
-    tf.keras.callbacks.LearningRateScheduler(decay),
+    # tf.keras.callbacks.LearningRateScheduler(decay),
+    ShowLearnintRate(),
 ]
 
 
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
@@ -72,5 +81,3 @@ saved_model_dir = os.path.join(root, 'saved_model')
 saved_model_name = os.path.join(
     saved_model_dir, 'unet_dae_separator?time={}.h5'.format(date_time))
 model.save(saved_model_name)
-
-plot_learning_curves(history)

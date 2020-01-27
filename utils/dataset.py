@@ -11,7 +11,6 @@ from utils.config import DATASET, STEM_FEAT
 
 # config parameters
 feat_names = ['mix', 'vocals', 'bass', 'drums', 'other']
-batch_size = DATASET['BATCH_SIZE']
 cpu_cores = mp.cpu_count()
 
 
@@ -25,8 +24,8 @@ def get_filepath(basename, stem_type, dataset_name):
 
 
 def tfrecord2dataset(filenames,
+                     batch_size,
                      n_readers=cpu_cores,
-                     batch_size=batch_size,
                      n_parse_threads=cpu_cores,
                      shuffle_buffer_size=20000):
     dataset = tf.data.TFRecordDataset(filenames)
@@ -42,7 +41,7 @@ def tfrecord2dataset(filenames,
 
 
 def tfrecord2dataset_nonrepeat(filenames,
-                               batch_size=batch_size,
+                               batch_size,
                                n_parse_threads=cpu_cores,
                                shuffle_buffer_size=20000):
     dataset = tf.data.TFRecordDataset(filenames)

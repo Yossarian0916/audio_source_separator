@@ -11,12 +11,4 @@ STFT_CONFIG = {
     "CLIP_LEN": 2.0
 }
 
-DATASET = {
-    "BATCH_SIZE": 256
-}
-
-TRAINING = {
-    "EPOCHS": 100
-}
-
 STEM_FEAT = ['mix', 'vocals', 'bass', 'drums', 'other']

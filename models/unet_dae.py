@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-class UNet_Autoencoder:
+class UnetAutoencoder:
     def __init__(self, freq_bins, time_frames):
         self.bins = freq_bins
         self.frames = time_frames
@@ -80,15 +80,19 @@ class UNet_Autoencoder:
         conv7_input = self.crop_and_concat(conv6_upsampling, conv1)
         conv7 = self.conv1d_bn(self.frames, 3, padding='same')(conv7_input)
 
-        conv8_input = self.crop_and_concat(conv7, mix_input)
-        conv8 = self.conv1d_bn(self.frames*4, 3, padding='same')(conv8_input)
+        conv8 = self.conv1d_bn(self.frames*3, 3, padding='same')(conv7)
+        output = self.crop_and_concat(conv8, mix_input)
 
         # denoising autoencoder separators
-        vocals = self.autoencoder(32, name='vocals')(conv8[:, :, :self.frames])
-        bass = self.autoencoder(32, name='bass')(
-            conv8[:, :, self.frames:self.frames*2])
-        drums = self.autoencoder(32, name='drums')(
-            conv8[:, :, self.frames*2:self.frames*3])
-        other = self.autoencoder(32, name='other')(conv8[:, :, self.frames*3:])
+        vocals = self.autoencoder(7, name='vocals')(
+            output[:, :, :self.frames])
+        bass = self.autoencoder(7, name='bass')(
+            output[:, :, self.frames:self.frames*2])
+        drums = self.autoencoder(7, name='drums')(
+            output[:, :, self.frames*2:self.frames*3])
+        other = self.autoencoder(7, name='other')(
+            output[:, :, self.frames*3:])
 
-        return keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
+        return keras.Model(inputs=[mix_input],
+                           outputs=[vocals, bass, drums, other],
+                           name=name)

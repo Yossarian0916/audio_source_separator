@@ -1,12 +1,9 @@
 import tensorflow as tf
-
 from functools import partial
 import multiprocessing as mp
 import os
 import sys
-
 from utils.helper import wav2stft, get_filenames
-from utils.config import DATASET, STEM_FEAT
 
 
 # config parameters
@@ -25,28 +22,17 @@ def get_filepath(basename, stem_type, dataset_name):
 
 def tfrecord2dataset(filenames,
                      batch_size,
+                     shuffle=True,
+                     repeat_epochs=None,
                      n_readers=cpu_cores,
                      n_parse_threads=cpu_cores,
                      shuffle_buffer_size=20000):
     dataset = tf.data.TFRecordDataset(filenames)
     # for perfect shuffling, the buffer size should be greater than the full size of the dataset
-    dataset.shuffle(shuffle_buffer_size)
+    if shuffle:
+        dataset.shuffle(shuffle_buffer_size)
     # repeat the dataset endless times
-    dataset = dataset.repeat()
-    # concurrently parse each tfrecord
-    dataset = dataset.map(parse_records, num_parallel_calls=n_parse_threads)
-    # create batches
-    dataset = dataset.batch(batch_size)
-    return dataset
-
-
-def tfrecord2dataset_nonrepeat(filenames,
-                               batch_size,
-                               n_parse_threads=cpu_cores,
-                               shuffle_buffer_size=20000):
-    dataset = tf.data.TFRecordDataset(filenames)
-    # for perfect shuffling, the buffer size should be greater than the full size of the dataset
-    dataset.shuffle(shuffle_buffer_size)
+    dataset = dataset.repeat(repeat_epochs)
     # concurrently parse each tfrecord
     dataset = dataset.map(parse_records, num_parallel_calls=n_parse_threads)
     # create batches

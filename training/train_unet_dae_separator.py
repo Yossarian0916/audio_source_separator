@@ -5,32 +5,18 @@ import os
 import sys
 from utils.helper import get_filenames
 from utils.dataset import tfrecord2dataset
-from models.unet_dae import UNet_Autoencoder
+from models.unet_dae import UnetAutoencoder
 from training.plot import plot_learning_curves
 
 
 # load dataset
-BATCH_SIZE = 8
-root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-data_dir = os.path.join(root, 'data')
-# tfrecords
-dsd100_train_dir = os.path.join(data_dir, 'dsd100_train_tfrecords')
-dsd100_train_tfrecords = get_filenames(dsd100_train_dir+'/*')
-dsd100_test_dir = os.path.join(data_dir, 'dsd100_test_tfrecords')
-dsd100_test_tfrecords = get_filenames(dsd100_test_dir+'/*')
-# training dataset
-train_tfrecords = dsd100_train_tfrecords + \
-    dsd100_test_tfrecords[len(dsd100_test_tfrecords)//2:]
-train_dataset = tfrecord2dataset(train_tfrecords, BATCH_SIZE)
-# validation dataset
-valid_tfrecords = dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
-valid_dataset = tfrecord2dataset(valid_tfrecords, BATCH_SIZE)
-
-TRAIN_DATA_SIZE = len(train_tfrecords)
-VAL_DATA_SIZE = len(valid_tfrecords)
+BATCH_SIZE = 1
+dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
+train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
+TRAIN_DATA_SIZE, VAL_DATA_SIZE, TEST_DATA_SIZE = dsd100_dataset.dataset_stat()
 
 # separator model
-separator = UNet_Autoencoder(2049, 87)
+separator = UnetAutoencoder(2049, 87)
 model = separator.get_model()
 model.summary()
 
@@ -55,14 +41,14 @@ log_dir = "./logs/unet_dae_separator/" + \
 # callbacks: early-stopping, tensorboard
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
+        monitor='val_loss', min_delta=1e-3, verbose=True, patience=15),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     # tf.keras.callbacks.LearningRateScheduler(decay),
     ShowLearnintRate(),
 ]
 
 
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005),
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0003),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),

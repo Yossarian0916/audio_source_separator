@@ -1,2 +1,14 @@
 *.ipynb filter=lfs diff=lfs merge=lfs -text
 notebooks/** filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-22_17:47.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-22_22:58.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-27_18:08.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-27_23:59.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-30_06:56.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_separator?time=2020-01-30_02:15.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-27_00:17.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_dae_separator?time=2020-01-27_22:36.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_separator?time=2020-01-29_23:15.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_separator?time=2020-01-30_00:04.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_separator_3downsample_uncorrelated_output?time=2020-01-22_14:28.h5 filter=lfs diff=lfs merge=lfs -text
+saved_model/unet_separator_3downsample_uncorrelated_output?time=2020-01-22_15:21.h5 filter=lfs diff=lfs merge=lfs -text

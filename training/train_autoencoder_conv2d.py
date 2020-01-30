@@ -8,7 +8,7 @@ from training.make_dataset import DSD100Dataset
 
 
 # load dataset
-BATCH_SIZE = 8
+BATCH_SIZE = 16
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
 train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
 TRAIN_DATA_SIZE, VAL_DATA_SIZE, TEST_DATA_SIZE = dsd100_dataset.dataset_stat()
@@ -46,7 +46,7 @@ callbacks = [
 ]
 
 
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.003, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),

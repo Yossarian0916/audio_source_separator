@@ -26,6 +26,7 @@ class UnetSeparator:
         return tf.concat([x1, x2], axis=2)
 
     def crop(self, tensor, target_shape):
+        # the tensor flow in model is of shape (batch, freq_bins, time_frames)
         shape = tensor.get_shape().as_list()
         diff = shape[1] - target_shape[1]
         assert diff >= 0  # Only positive difference allowed
@@ -33,8 +34,13 @@ class UnetSeparator:
             return tensor
         crop_start = diff // 2
         crop_end = diff - crop_start
-
         return tensor[:, crop_start:-crop_end, :]
+
+    def tile(self, tensor, multiples):
+        freq_multiple, time_multiple = multiples
+        # the tensor flow in model is of shape (batch, freq_bins, time_frames)
+        multiples = tf.constant((1, freq_multiple, time_multiple), tf.int32)
+        return tf.tile(tensor, multiples)
 
     def get_model(self, name='unet_separator'):
         # input
@@ -62,22 +68,19 @@ class UnetSeparator:
         conv7_input = self.crop_and_concat(conv6_upsampling, conv1)
         conv7 = self.conv1d_bn(self.frames, 15, padding='same')(conv7_input)
 
-        conv8 = self.conv1d_bn(self.frames*3, 15, padding='same')(conv7)
-        output = self.crop_and_concat(conv8, mix_input)
+        # output layer
+        output = keras.layers.Add()([conv7, mix_input])
+        output = self.tile(output, (1, 4))
 
-        # denoising autoencoder separators
-        vocals = self.conv1d_bn(self.frames, 15, name='vocals')(
-            output[:, :, :self.frames])
-        bass = self.conv1d_bn(self.frames, 15, name='bass')(
-            output[:, :, self.frames:self.frames*2])
-        drums = self.conv1d_bn(self.frames, 15, name='drums')(
-            output[:, :, self.frames*2:self.frames*3])
-        other = self.conv1d_bn(self.frames, 15, name='other')(
-            output[:, :, self.frames*3:])
+        # uniformly split tensor along time_frames axis into 4 inputs
+        vocals_input, bass_input, drums_input, other_input = tf.split(output, 4, axis=2)
+        # last conv1d layer separation
+        vocals = self.conv1d_bn(self.frames, 15, name='vocals')(vocals_input)
+        bass = self.conv1d_bn(self.frames, 15, name='bass')(bass_input)
+        drums = self.conv1d_bn(self.frames, 3, name='drums')(drums_input)
+        other = self.conv1d_bn(self.frames, 7, name='other')(other_input)
 
-        self.model = keras.Model(inputs=[mix_input],
-                                 outputs=[vocals, bass, drums, other],
-                                 name=name)
+        self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
         return self.model
 
     def save_weights(self, path):
@@ -85,6 +88,15 @@ class UnetSeparator:
 
     def load_weights(self, path):
         pass
+
+    def save_model_plot(self, file_name='unet_dae_separator.png'):
+        if self.model is not None:
+            root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+            images_dir = os.path.join(root_dir, 'images')
+            file_path = os.path.join(images_dir, file_name)
+            keras.utils.plot_model(self.model, file_path)
+        else:
+            raise ValueError("no model has been built yet! call get_model() first!")
 
     def model_summary(self):
         if self.model is not None:

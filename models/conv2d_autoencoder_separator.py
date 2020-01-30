@@ -53,14 +53,14 @@ class AutoencoderConv2d:
         x = keras.layers.Conv2D(16, self.kernel_size, padding='same', activation='relu')(x)
         output = keras.layers.Conv2D(4, self.kernel_size, padding='same', activation='relu')(x)
 
-        vocals = keras.layers.Reshape((self.bins, self.frames), name='vocals')(output[:, :, :, :1])
-        bass = keras.layers.Reshape((self.bins, self.frames), name='bass')(output[:, :, :, 1:2])
-        drums = keras.layers.Reshape((self.bins, self.frames), name='drums')(output[:, :, :, 2:3])
-        other = keras.layers.Reshape((self.bins, self.frames), name='other')(output[:, :, :, 3:4])
+        # uniformly split channels into 4
+        vocals_input, bass_input, drums_input, other_input = tf.split(output, 4, axis=2)
+        vocals = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='vocals')(tf.squeeze(vocals_input))
+        bass = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='bass')(tf.squeeze(bass_input))
+        drums = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='drums')(tf.squeeze(drums_input))
+        other = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='other')(tf.squeeze(other_input))
 
-        self.model = keras.Model(inputs=[mix_input],
-                                 outputs=[vocals, bass, drums, other],
-                                 name=name)
+        self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
         return self.model
 
     def save_weights(self, path):

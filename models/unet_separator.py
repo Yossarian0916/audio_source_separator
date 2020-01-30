@@ -1,11 +1,14 @@
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow.keras.backend as K
 
 
 class UnetSeparator:
     def __init__(self, freq_bins, time_frames):
         self.bins = freq_bins
         self.frames = time_frames
+        self.summary = dict()
+        self.model = None
 
     def conv1d_bn(self, filters, kernel_size, strides=1, padding='same', kernel_initializer='he_uniform', name=None):
         conv1d_bn = keras.Sequential([
@@ -72,6 +75,29 @@ class UnetSeparator:
         other = self.conv1d_bn(self.frames, 15, name='other')(
             output[:, :, self.frames*3:])
 
-        return keras.Model(inputs=[mix_input],
-                           outputs=[vocals, bass, drums, other],
-                           name=name)
+        self.model = keras.Model(inputs=[mix_input],
+                                 outputs=[vocals, bass, drums, other],
+                                 name=name)
+        return self.model
+
+    def save_weights(self, path):
+        pass
+
+    def load_weights(self, path):
+        pass
+
+    def model_summary(self):
+        if self.model is not None:
+            trainable_count = np.sum([K.count_params(w) for w in self.model.trainable_weights])
+            non_trainable_count = np.sum([K.count_params(w) for w in self.model.non_trainable_weights])
+            self.summary = {
+                'total_parameters': trainable_count + non_trainable_count,
+                'trainable_parameters': trainable_count,
+                'non_trainable_parameters': non_trainable_count}
+        else:
+            raise ValueError("no model has been built yet! call get_model() first!")
+
+    def __str__(self):
+        return self.summary
+
+    __repr__ = __str__

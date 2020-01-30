@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow import keras
 from datetime import datetime
 import os
-import sys
 from models.unet_separator import UnetSeparator
 from training.make_dataset import DSD100Dataset
 
@@ -20,17 +19,17 @@ model = separator.get_model()
 model.summary()
 
 
+def decay(epoch, lr):
+    if epoch < 50 or lr < 1e-3:
+        return lr
+    else:
+        return 0.1 * lr
+
+
 class ShowLearnintRate(tf.keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         if epoch % 10 == 0:
-            print('\nEpoch %05d: Learning rate is %6.4f.' % (epoch, self.model.optimizer.lr.numpy()))
-
-
-def decay(epoch):
-    if epoch < 50:
-        return 0.3
-    else:
-        return 0.03
+            print('\nEpoch %03d: Learning rate is %6.4f.' % (epoch, self.model.optimizer.lr.numpy()))
 
 
 # callbacks: early-stopping, tensorboard

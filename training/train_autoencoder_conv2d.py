@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow import keras
 from datetime import datetime
 import os
-import sys
 from models.conv2d_autoencoder_separator import AutoencoderConv2d
 from training.make_dataset import DSD100Dataset
 

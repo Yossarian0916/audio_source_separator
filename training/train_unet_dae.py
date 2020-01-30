@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow import keras
 from datetime import datetime
 import os
-import sys
 from models.unet_dae import UnetAutoencoder
 from training.make_dataset import DSD100Dataset
 

@@ -7,11 +7,13 @@ from models.conv2d_autoencoder_separator import AutoencoderConv2d
 from training.make_dataset import DSD100Dataset
 
 
+# hyper-parameter
+BATCH_SIZE = 256
+
 # load dataset
-BATCH_SIZE = 16
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
 train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
-TRAIN_DATA_SIZE, VAL_DATA_SIZE, TEST_DATA_SIZE = dsd100_dataset.dataset_stat()
+train_data_size, valid_data_size, test_data_size = dsd100_dataset.dataset_stat()
 
 # separator model
 separator = AutoencoderConv2d(2049, 87)
@@ -29,14 +31,11 @@ def decay(epoch, lr):
 class ShowLearnintRate(tf.keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         if epoch % 10 == 0:
-            print('\nEpoch %03d: Learning rate is %6.4f.' %
-                  (epoch, self.model.optimizer.lr.numpy()))
+            print('\nEpoch %03d: Learning rate is %6.4f.' % (epoch, self.model.optimizer.lr.numpy()))
 
-
-log_dir = "./logs/autoencoder_conv2d_separator/" + \
-    datetime.now().strftime("%Y%m%d_%H%M%S")
 
 # callbacks: early-stopping, tensorboard
+log_dir = "./logs/autoencoder_conv2d_separator/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
         monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
@@ -45,7 +44,7 @@ callbacks = [
     ShowLearnintRate(),
 ]
 
-
+# BEGIN TRAINING
 model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
@@ -53,10 +52,10 @@ model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=100,
+                    epochs=500,
                     validation_data=valid_dataset,
-                    steps_per_epoch=TRAIN_DATA_SIZE // BATCH_SIZE,
-                    validation_steps=VAL_DATA_SIZE // BATCH_SIZE,
+                    steps_per_epoch=train_data_size // BATCH_SIZE,
+                    validation_steps=valid_data_size // BATCH_SIZE,
                     callbacks=callbacks)
 
 # save model

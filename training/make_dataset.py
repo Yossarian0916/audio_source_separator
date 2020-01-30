@@ -24,11 +24,9 @@ class DSD100Dataset:
     def build_dataset(self):
         dsd100_train_tfrecords, dsd100_test_tfrecords = self.get_tfrecords()
         # define tfrecords for datasets
-        self.train_tfrecords = dsd100_train_tfrecords + \
-            dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
-        self.valid_tfrecords = dsd100_test_tfrecords[len(
-            dsd100_test_tfrecords)//2:]
-        self.test_tfrecords = None
+        self.train_tfrecords = dsd100_train_tfrecords + dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
+        self.valid_tfrecords = dsd100_test_tfrecords[len(dsd100_test_tfrecords)//2:]
+        self.test_tfrecords = dsd100_test_tfrecords[len(dsd100_test_tfrecords)//2:]
         # build datasets
         self.build_train_dataset(self.train_tfrecords)
         self.build_valid_dataset(self.valid_tfrecords)

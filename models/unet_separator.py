@@ -38,38 +38,38 @@ class UnetSeparator:
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
 
         # encoder
-        conv1 = self.conv1d_bn(self.frames, 3)(mix_input)
+        conv1 = self.conv1d_bn(self.frames, 15)(mix_input)
         maxpool1 = keras.layers.MaxPool1D(2, padding='same')(conv1)
-        conv2 = self.conv1d_bn(self.frames * 2, 3)(maxpool1)
+        conv2 = self.conv1d_bn(self.frames, 15)(maxpool1)
         maxpool2 = keras.layers.MaxPool1D(2, padding='same')(conv2)
-        conv3 = self.conv1d_bn(self.frames * 3, 3)(maxpool2)
+        conv3 = self.conv1d_bn(self.frames, 15)(maxpool2)
         maxpool3 = keras.layers.MaxPool1D(2, padding='same')(conv3)
-        conv4 = self.conv1d_bn(self.frames * 4, 3)(maxpool3)
+        conv4 = self.conv1d_bn(self.frames, 15)(maxpool3)
 
         # decoder
         conv4_upsampling = keras.layers.UpSampling1D(2)(conv4)
         conv5_input = self.crop_and_concat(conv4_upsampling, conv3)
-        conv5 = self.conv1d_bn(self.frames * 3, 3, padding='same')(conv5_input)
+        conv5 = self.conv1d_bn(self.frames, 15, padding='same')(conv5_input)
 
         conv5_upsampling = keras.layers.UpSampling1D(2)(conv5)
         conv6_input = self.crop_and_concat(conv5_upsampling, conv2)
-        conv6 = self.conv1d_bn(self.frames * 2, 3, padding='same')(conv6_input)
+        conv6 = self.conv1d_bn(self.frames, 15, padding='same')(conv6_input)
         conv6_upsampling = keras.layers.UpSampling1D(2)(conv6)
 
         conv7_input = self.crop_and_concat(conv6_upsampling, conv1)
-        conv7 = self.conv1d_bn(self.frames, 3, padding='same')(conv7_input)
+        conv7 = self.conv1d_bn(self.frames, 15, padding='same')(conv7_input)
 
-        conv8 = self.conv1d_bn(self.frames*3, 3, padding='same')(conv7)
+        conv8 = self.conv1d_bn(self.frames*3, 15, padding='same')(conv7)
         output = self.crop_and_concat(conv8, mix_input)
 
         # denoising autoencoder separators
-        vocals = self.conv1d_bn(self.frames, 7, name='vocals')(
+        vocals = self.conv1d_bn(self.frames, 15, name='vocals')(
             output[:, :, :self.frames])
-        bass = self.conv1d_bn(self.frames, 7, name='bass')(
+        bass = self.conv1d_bn(self.frames, 15, name='bass')(
             output[:, :, self.frames:self.frames*2])
-        drums = self.conv1d_bn(self.frames, 7, name='drums')(
+        drums = self.conv1d_bn(self.frames, 15, name='drums')(
             output[:, :, self.frames*2:self.frames*3])
-        other = self.conv1d_bn(self.frames, 7, name='other')(
+        other = self.conv1d_bn(self.frames, 15, name='other')(
             output[:, :, self.frames*3:])
 
         return keras.Model(inputs=[mix_input],

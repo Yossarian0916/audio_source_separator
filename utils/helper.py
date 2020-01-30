@@ -29,6 +29,22 @@ def get_filenames(path):
     return filenames
 
 
+def wav2logspectro(wav_file):
+    """return log(1+spectrogram) of a given audio"""
+    db_spectro_clip = np.empty((0, FREQ_BINS, TIME_FRAMES))
+    duration = librosa.get_duration(filename=wav_file)
+    for i in range(math.floor(duration/CLIP_LEN)):
+        sound, sr = librosa.load(
+            wav_file, sr=SR, offset=i*CLIP_LEN, duration=CLIP_LEN)
+        stft = librosa.stft(sound, n_fft=N_FFT,
+                            hop_length=HOP_LEN, win_length=WIN_LEN)
+        mag, phase = librosa.magphase(stft)
+        db_spectro = librosa.amplitude_to_db(mag)
+        db_spectro_clip = np.concatenate(
+            (db_spectro_clip, db_spectro[np.newaxis, ...]), axis=0)
+    return db_spectro_clip
+
+
 def wav2stft(wav_file):
     """return absolute magnitude of STFT spectrum"""
     stft_clip = np.empty((0, FREQ_BINS, TIME_FRAMES))
@@ -38,7 +54,7 @@ def wav2stft(wav_file):
             wav_file, sr=SR, offset=i*CLIP_LEN, duration=CLIP_LEN)
         stft = librosa.stft(sound, n_fft=N_FFT,
                             hop_length=HOP_LEN, win_length=WIN_LEN)
-        mag, stft = librosa.magphase(stft)
+        mag, phase = librosa.magphase(stft)
         stft_clip = np.concatenate((stft_clip, mag[np.newaxis, ...]), axis=0)
     return stft_clip
 

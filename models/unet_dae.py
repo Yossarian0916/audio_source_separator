@@ -20,6 +20,7 @@ class UnetAutoencoder:
         return conv1d_bn
 
     def crop_and_concat(self, x1, x2):
+        """crop tensor x1 to match x2, x2 shape is the target shape"""
         if x2 is None:
             return x1
         x1 = self.crop(x1, x2.get_shape().as_list())
@@ -43,24 +44,21 @@ class UnetAutoencoder:
         return tf.tile(tensor, multiples)
 
     def autoencoder(self, kernel_size, strides=1, name='autoencoder'):
+        """denoising autoencoder to further remove noise"""
         inputs = keras.Input(shape=(self.bins, self.frames))
-        x = keras.layers.Conv1D(self.frames, kernel_size,
-                                strides, padding='same', activation='relu')(inputs)
-        x = keras.layers.MaxPool1D(2, padding='same')(x)
-        x = keras.layers.Conv1D(self.frames, kernel_size,
-                                strides, padding='same', activation='relu')(x)
-        x = keras.layers.MaxPool1D(2, padding='same')(x)
-        x = keras.layers.Conv1D(self.frames, kernel_size,
-                                strides, padding='same', activation='relu')(x)
+        # downsampling
+        x = keras.layers.Conv1D(self.frames, kernel_size, strides=2, padding='same', activation='relu')(inputs)
+        x = keras.layers.Conv1D(self.frames, kernel_size, strides=2, padding='same', activation='relu')(x)
+        # upsampling
         x = keras.layers.UpSampling1D(2)(x)
-        x = keras.layers.Conv1D(self.frames, kernel_size, strides,
-                                padding='same', activation='relu')(x)
+        x = keras.layers.Conv1D(self.frames, kernel_size, strides, padding='same', activation='relu')(x)
         x = keras.layers.UpSampling1D(2)(x)
-        x = keras.layers.Conv1D(self.frames, kernel_size,
-                                strides, padding='same', activation='relu')(x)
-
-        output = keras.layers.Conv1D(
-            self.frames, 4, strides, padding='valid', activation='relu')(x)
+        x = keras.layers.Conv1D(self.frames, kernel_size, strides, padding='same', activation='relu')(x)
+        # this skip connection is to resize the output layer tensor shape
+        # instead of another conv1d layer, which kernel_size will be 4, too small
+        # thus, will introduce new noisy pixels in spectrogram
+        x = self.crop_and_concat(x, inputs)
+        output = keras.layers.Conv1D(self.frames, kernel_size, strides, padding='same', activation='relu')(x)
         return keras.Model(inputs=[inputs], outputs=[output], name=name)
 
     def get_model(self, name='unet_dae_separator'):

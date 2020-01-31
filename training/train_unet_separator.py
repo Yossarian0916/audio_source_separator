@@ -20,9 +20,11 @@ model.summary()
 
 
 def decay(epoch, lr):
-    if epoch < 50 or lr < 1e-3:
+    if lr < 1e-3:
         return lr
-    else:
+    if epoch < 50:
+        return lr
+    elif epoch % 10 == 0:
         return 0.1 * lr
 
 
@@ -50,7 +52,7 @@ model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.3, momentum=0.9, nesterov=T
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=200,
+                    epochs=100,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,

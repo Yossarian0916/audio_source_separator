@@ -10,7 +10,7 @@ class UnetSeparator:
         self.summary = dict()
         self.model = None
 
-    def conv1d_bn(self, filters, kernel_size, strides=1, padding='same', kernel_initializer='he_uniform', name=None):
+    def conv1d_bn(self, filters, kernel_size, strides=1, padding='same', kernel_initializer='he_normal', name=None):
         conv1d_bn = keras.Sequential([
             keras.layers.Conv1D(filters, kernel_size, strides, padding,
                                 activation=None, kernel_initializer=kernel_initializer),
@@ -20,6 +20,7 @@ class UnetSeparator:
         return conv1d_bn
 
     def crop_and_concat(self, x1, x2):
+        """crop tensor x1 to match x2, x2 shape is the target shape"""
         if x2 is None:
             return x1
         x1 = self.crop(x1, x2.get_shape().as_list())

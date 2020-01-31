@@ -20,10 +20,12 @@ model.summary()
 
 
 def decay(epoch, lr):
-    if epoch < 50 or lr < 1e-3:
+    if lr < 1e-4:
         return lr
-    else:
-        return 0.1 * lr
+    if epoch < 50:
+        return lr
+    elif epoch % 10 == 0:
+        return 0.5 * lr
 
 
 class ShowLearnintRate(tf.keras.callbacks.Callback):
@@ -43,14 +45,14 @@ callbacks = [
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.003, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.0005, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=500,
+                    epochs=100,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,

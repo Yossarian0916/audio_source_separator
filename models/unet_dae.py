@@ -10,15 +10,6 @@ class UnetAutoencoder:
         self.summary = dict()
         self.model = None
 
-    def conv1d_bn(self, filters, kernel_size, strides=1, padding='same', kernel_initializer='he_normal', name=None):
-        conv1d_bn = keras.Sequential([
-            keras.layers.Conv1D(filters, kernel_size, strides, padding,
-                                activation=None, kernel_initializer=kernel_initializer),
-            keras.layers.BatchNormalization(),
-            keras.layers.LeakyReLU(alpha=0.01),
-        ], name=name)
-        return conv1d_bn
-
     def crop_and_concat(self, x1, x2):
         """crop tensor x1 to match x2, x2 shape is the target shape"""
         if x2 is None:
@@ -43,49 +34,68 @@ class UnetAutoencoder:
         multiples = tf.constant((1, freq_multiple, time_multiple), tf.int32)
         return tf.tile(tensor, multiples)
 
-    def autoencoder(self, kernel_size, strides=1, name='autoencoder'):
+    def conv1d_bn(self,
+                  input_tensor,
+                  filters,
+                  kernel_size,
+                  strides=1,
+                  padding='same',
+                  kernel_initializer='he_normal',
+                  kernel_regularizer=keras.regularizers.l2(0.01)):
+        x = keras.layers.Conv1D(filters, kernel_size,
+                                strides=strides,
+                                padding=padding,
+                                data_format='channels_last',
+                                use_bias=False,
+                                kernel_initializer=kernel_initializer,
+                                kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=-1)(x)
+        output = keras.layers.LeakyReLU(0.01)(x)
+        return output
+
+    def autoencoder(self, intput_tensor, kernel_size, name='autoencoder'):
         """denoising autoencoder to further remove noise"""
-        inputs = keras.Input(shape=(self.bins, self.frames))
         # downsampling
-        x = keras.layers.Conv1D(self.frames, kernel_size, strides=2, padding='same', activation='relu')(inputs)
-        x = keras.layers.Conv1D(self.frames, kernel_size, strides=2, padding='same', activation='relu')(x)
+        x = self.conv1d_bn(input_tensor, self.frames, kernel_size, 2)
+        x = self.conv1d_bn(x, self.frames, kernel_size, 2)
         # upsampling
         x = keras.layers.UpSampling1D(2)(x)
-        x = keras.layers.Conv1D(self.frames, kernel_size, strides, padding='same', activation='relu')(x)
+        x = self.conv1d_bn(x, self.frames, kernel_size)
         x = keras.layers.UpSampling1D(2)(x)
-        x = keras.layers.Conv1D(self.frames, kernel_size, strides, padding='same', activation='relu')(x)
+        x = self.conv1d_bn(x, self.frames, kernel_size)
         # this skip connection is to resize the output layer tensor shape
-        # instead of another conv1d layer, which kernel_size will be 4, too small
-        # thus, will introduce new noisy pixels in spectrogram
-        x = self.crop_and_concat(x, inputs)
-        output = keras.layers.Conv1D(self.frames, kernel_size, strides, padding='same', activation='relu')(x)
-        return keras.Model(inputs=[inputs], outputs=[output], name=name)
+        # instead of another conv1d layer, which kernel_size should be 4 in order
+        # to match the input tensor shape (frequency_bins, time_frames)
+        # kernel_size=4 is too small, will introduce new noisy pixels in spectrogram
+        x = self.crop_and_concat(x, input_tensor)
+        output = self.conv1d_bn(x, self.frames, kernel_size)
+        return output
 
     def get_model(self, name='unet_dae_separator'):
         # input
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
 
-        # encoder
-        conv1 = self.conv1d_bn(self.frames, 15)(mix_input)
+        # downsampling
+        conv1 = self.conv1d_bn(mix_input, self.frames, 15)
         maxpool1 = keras.layers.MaxPool1D(2, padding='same')(conv1)
-        conv2 = self.conv1d_bn(self.frames, 15)(maxpool1)
+        conv2 = self.conv1d_bn(maxpool1, self.frames, 15)
         maxpool2 = keras.layers.MaxPool1D(2, padding='same')(conv2)
-        conv3 = self.conv1d_bn(self.frames, 15)(maxpool2)
+        conv3 = self.conv1d_bn(maxpool2, self.frames, 15)
         maxpool3 = keras.layers.MaxPool1D(2, padding='same')(conv3)
-        conv4 = self.conv1d_bn(self.frames, 15)(maxpool3)
+        conv4 = self.conv1d_bn(maxpool3, self.frames, 15)
 
-        # decoder
+        # upsampling
         conv4_upsampling = keras.layers.UpSampling1D(2)(conv4)
         conv5_input = self.crop_and_concat(conv4_upsampling, conv3)
-        conv5 = self.conv1d_bn(self.frames, 15, padding='same')(conv5_input)
+        conv5 = self.conv1d_bn(conv5_input, self.frames, 15, padding='same')
 
         conv5_upsampling = keras.layers.UpSampling1D(2)(conv5)
         conv6_input = self.crop_and_concat(conv5_upsampling, conv2)
-        conv6 = self.conv1d_bn(self.frames, 15, padding='same')(conv6_input)
+        conv6 = self.conv1d_bn(conv6_input, self.frames, 15, padding='same')
 
         conv6_upsampling = keras.layers.UpSampling1D(2)(conv6)
         conv7_input = self.crop_and_concat(conv6_upsampling, conv1)
-        conv7 = self.conv1d_bn(self.frames, 15, padding='same')(conv7_input)
+        conv7 = self.conv1d_bn(conv7_input, self.frames, 15, padding='same')
 
         # output layer
         output = keras.layers.Add()([conv7, mix_input])
@@ -94,10 +104,10 @@ class UnetAutoencoder:
         # uniformly split tensor along time_frames axis into 4 inputs
         vocals_input, bass_input, drums_input, other_input = tf.split(output, 4, axis=2)
         # denoising autoencoder separators
-        vocals = self.autoencoder(15, name='vocals')(vocals_input)
-        bass = self.autoencoder(15, name='bass')(bass_input)
-        drums = self.autoencoder(3, name='drums')(drums_input)
-        other = self.autoencoder(7, name='other')(other_input)
+        vocals = self.autoencoder(vocals_input, 15, name='vocals')
+        bass = self.autoencoder(bass_input, 15, name='bass')
+        drums = self.autoencoder(drums_input, 3, name='drums')
+        other = self.autoencoder(other_input, 7, name='other')
 
         self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
         return self.model

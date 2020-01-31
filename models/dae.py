@@ -3,7 +3,7 @@ from tensorflow import keras
 import tensorflow.keras.backend as K
 
 
-class UnetSeparator:
+class DenoisingAutoencoder:
     def __init__(self, freq_bins, time_frames):
         self.bins = freq_bins
         self.frames = time_frames
@@ -33,12 +33,6 @@ class UnetSeparator:
         crop_end = diff - crop_start
         return tensor[:, crop_start:-crop_end, :]
 
-    def tile(self, tensor, multiples):
-        freq_multiple, time_multiple = multiples
-        # the tensor flow in model is of shape (batch, freq_bins, time_frames)
-        multiples = tf.constant((1, freq_multiple, time_multiple), tf.int32)
-        return tf.tile(tensor, multiples)
-
     def conv1d_bn(self,
                   input_tensor,
                   filters,
@@ -58,44 +52,32 @@ class UnetSeparator:
         output = keras.layers.LeakyReLU(0.01)(x)
         return output
 
-    def get_model(self, name='unet_separator'):
-        # dataset spectrogram output tensor shape: (batch, frequency_bins, time_frames)
+    def autoencoder(self, intput_tensor, kernel_size):
+        """denoising autoencoder to further remove noise"""
+        # downsampling
+        x = self.conv1d_bn(input_tensor, self.frames, kernel_size, 2)
+        x = self.conv1d_bn(x, self.frames, kernel_size, 2)
+        # upsampling
+        x = keras.layers.UpSampling1D(2)(x)
+        x = self.conv1d_bn(x, self.frames, kernel_size)
+        x = keras.layers.UpSampling1D(2)(x)
+        x = self.conv1d_bn(x, self.frames, kernel_size)
+        # this skip connection is to resize the output layer tensor shape
+        # instead of another conv1d layer, which kernel_size should be 4 in order
+        # to match the input tensor shape (frequency_bins, time_frames)
+        # kernel_size=4 is too small, will introduce new noisy pixels in spectrogram
+        x = self.crop_and_concat(x, input_tensor)
+        output = self.conv1d_bn(x, self.frames, kernel_size)
+        return output
+
+    def get_model(self, name='denoising_autoencoder'):
         # input
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
-
-        # downsampling
-        conv1 = self.conv1d_bn(mix_input, self.frames, 15)
-        maxpool1 = keras.layers.MaxPool1D(2, padding='same')(conv1)
-        conv2 = self.conv1d_bn(maxpool1, self.frames, 15)
-        maxpool2 = keras.layers.MaxPool1D(2, padding='same')(conv2)
-        conv3 = self.conv1d_bn(maxpool2, self.frames, 15)
-        maxpool3 = keras.layers.MaxPool1D(2, padding='same')(conv3)
-        conv4 = self.conv1d_bn(maxpool3, self.frames, 15)
-
-        # upsampling
-        conv4_upsampling = keras.layers.UpSampling1D(2)(conv4)
-        conv5_input = self.crop_and_concat(conv4_upsampling, conv3)
-        conv5 = self.conv1d_bn(conv5_input, self.frames, 15, padding='same')
-
-        conv5_upsampling = keras.layers.UpSampling1D(2)(conv5)
-        conv6_input = self.crop_and_concat(conv5_upsampling, conv2)
-        conv6 = self.conv1d_bn(conv6_input, self.frames, 15, padding='same')
-        conv6_upsampling = keras.layers.UpSampling1D(2)(conv6)
-
-        conv7_input = self.crop_and_concat(conv6_upsampling, conv1)
-        conv7 = self.conv1d_bn(conv7_input, self.frames, 15, padding='same')
-
-        # output layer
-        output = keras.layers.Add()([conv7, mix_input])
-        output = self.tile(output, (1, 4))
-
-        # uniformly split tensor along time_frames axis into 4 inputs
-        vocals_input, bass_input, drums_input, other_input = tf.split(output, 4, axis=2)
-        # last conv1d layer separation
-        vocals = self.conv1d_bn(vocals_input, self.frames, 15, name='vocals')
-        bass = self.conv1d_bn(bass_input, self.frames, 15, name='bass')
-        drums = self.conv1d_bn(drums_input, self.frames, 3, name='drums')
-        other = self.conv1d_bn(other_input, self.frames, 7, name='other')
+        # denoising autoencoder separators
+        vocals = self.autoencoder(mix_input, 15, name='vocals')
+        bass = self.autoencoder(mix_input, 15, name='bass')
+        drums = self.autoencoder(mix_input, 3, name='drums')
+        other = self.autoencoder(mix_input, 7, name='other')
 
         self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
         return self.model
@@ -106,7 +88,7 @@ class UnetSeparator:
     def load_weights(self, path):
         raise NotImplementedError
 
-    def save_model_plot(self, file_name='unet_separator.png'):
+    def save_model_plot(self, file_name='dae_separator.png'):
         if self.model is not None:
             root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
             images_dir = os.path.join(root_dir, 'images')

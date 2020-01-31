@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-
 import tensorflow as tf
 from tensorflow import keras
 from datetime import datetime
 import os
-from models.unet_separator import UnetSeparator
+from models.dae import DenoisingAutoencoder
 from training.make_dataset import DSD100Dataset
 
 # hyper-parameter
@@ -16,7 +14,7 @@ train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
 train_data_size, valid_data_size, test_data_size = dsd100_dataset.dataset_stat()
 
 # separator model
-separator = UnetSeparator(2049, 87)
+separator = DenoisingAutoencoder(2049, 87)
 model = separator.get_model()
 model.summary()
 
@@ -27,7 +25,7 @@ def decay(epoch, lr):
     if epoch < 50:
         return lr
     elif epoch % 10 == 0:
-        return 0.1 * lr
+        return 0.5 * lr
 
 
 class ShowLearnintRate(tf.keras.callbacks.Callback):
@@ -37,10 +35,10 @@ class ShowLearnintRate(tf.keras.callbacks.Callback):
 
 
 # callbacks: early-stopping, tensorboard
-log_dir = "./logs/unet_separator/" + datetime.now().strftime("%Y%m%d_%H%M%S")
+log_dir = "./logs/dae_separator/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=1e-3, verbose=True, patience=20),
+        monitor='val_loss', min_delta=1e-3, verbose=True, patience=10),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     tf.keras.callbacks.LearningRateScheduler(decay),
     ShowLearnintRate(),
@@ -66,5 +64,5 @@ current_file_path = os.path.abspath(__file__)
 root = os.path.dirname(os.path.dirname(current_file_path))
 saved_model_dir = os.path.join(root, 'saved_model')
 saved_model_name = os.path.join(
-    saved_model_dir, 'unet_separator?time={}.h5'.format(date_time))
+    saved_model_dir, 'dae_separator?time={}.h5'.format(date_time))
 model.save(saved_model_name)

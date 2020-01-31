@@ -58,7 +58,7 @@ class UnetAutoencoder:
         output = keras.layers.LeakyReLU(0.01)(x)
         return output
 
-    def autoencoder(self, intput_tensor, kernel_size, name='autoencoder'):
+    def autoencoder(self, intput_tensor, kernel_size):
         """denoising autoencoder to further remove noise"""
         # downsampling
         x = self.conv1d_bn(input_tensor, self.frames, kernel_size, 2)
@@ -118,10 +118,10 @@ class UnetAutoencoder:
         return self.model
 
     def save_weights(self, path):
-        pass
+        raise NotImplementedError
 
     def load_weights(self, path):
-        pass
+        raise NotImplementedError
 
     def save_model_plot(self, file_name='unet_dae_separator.png'):
         if self.model is not None:

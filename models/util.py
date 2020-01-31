@@ -40,7 +40,7 @@ def crop2d(self, tensor, target_shape):
     row_crop_end = diff_row - row_crop_start
     # calculate new cropped column index
     col_crop_start = diff_col // 2
-    col_crop_end = diff_row - col_crop_start
+    col_crop_end = diff_col - col_crop_start
     return tensor[:, row_crop_start:-row_crop_end, col_crop_start:-col_crop_end, :]
 
 

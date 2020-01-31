@@ -20,7 +20,7 @@ model.summary()
 
 
 def decay(epoch, lr):
-    if lr < 1e-4:
+    if lr < 0.0001:
         return lr
     if epoch < 50:
         return lr

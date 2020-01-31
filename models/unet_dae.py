@@ -18,6 +18,11 @@ class UnetAutoencoder:
         return tf.concat([x1, x2], axis=2)
 
     def crop(self, tensor, target_shape):
+        """
+        crop tensor to match target_shape,
+        remove the diff/2 items at the start and at the end,
+        keep only the central part of the vector
+        """
         # the tensor flow in model is of shape (batch, freq_bins, time_frames)
         shape = tensor.get_shape().as_list()
         diff = shape[1] - target_shape[1]

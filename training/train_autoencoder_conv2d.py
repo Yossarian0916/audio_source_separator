@@ -7,7 +7,7 @@ from training.make_dataset import DSD100Dataset
 
 
 # hyper-parameter
-BATCH_SIZE = 256
+BATCH_SIZE = 16
 
 # load dataset
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
@@ -18,15 +18,6 @@ train_data_size, valid_data_size, test_data_size = dsd100_dataset.dataset_stat()
 separator = AutoencoderConv2d(2049, 87)
 model = separator.get_model()
 model.summary()
-
-
-def decay(epoch, lr):
-    if lr < 1e-3:
-        return lr
-    if epoch < 50:
-        return lr
-    elif epoch % 10 == 0:
-        return 0.1 * lr
 
 
 class ShowLearnintRate(tf.keras.callbacks.Callback):
@@ -41,19 +32,18 @@ callbacks = [
     tf.keras.callbacks.EarlyStopping(
         monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
-    # tf.keras.callbacks.LearningRateScheduler(decay),
     ShowLearnintRate(),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.003, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0003),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=100,
+                    epochs=20,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,

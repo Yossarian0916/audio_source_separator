@@ -9,59 +9,140 @@ class AutoencoderConv2d:
         self.frames = time_frames
         self.summary = dict()
         self.model = None
-        self.kernel_size = (31, 3)
+        self.kernel_size = (31, 5)
+
+    def identity_block(self,
+                       input_tensor,
+                       filters,
+                       kernel_size,
+                       kernel_initializer='he_normal',
+                       kernel_regularizer=keras.regularizers.l2(0.01)):
+        """residual block built with identity skip connection"""
+        filter1, filter2, filter3 = filters
+        if keras.backend.image_data_format() == 'channels_first':
+            bn_axis = 3
+        else:
+            bn_axis = 1
+        # kernel: (1, 1) layer
+        x = keras.layers.Conv2D(filter1, (1, 1), use_bias=False,
+                                kernel_initializer=kernel_initializer,
+                                kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=bn_axis)
+        x = keras.layers.LeakyReLU(0.01)(x)
+        # kernel: kernel_size layer
+        x = keras.layers.Conv2D(filter2, kernel_size, use_bias=False,
+                                kernel_initializer=kernel_initializer,
+                                kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=bn_axis)
+        x = keras.layers.LeakyReLU(0.01)(x)
+        # kernel: (1, 1) layer
+        x = keras.layers.Conv2D(filter3, (1, 1), use_bias=False,
+                                kernel_initializer=kernel_initializer,
+                                kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=bn_axis)
+
+        x_plus_skip_conn = layers.Add([x, input_tensor])
+        output = keras.layers.LeakyReLU(0.01)(x_plus_skip_conn)
+        return output
+
+    def downsample_block(self,
+                         input_tensor,
+                         filter,
+                         kernel_size,
+                         downsample_scale,
+                         kernel_initializer='he_normal',
+                         kernel_regularizer=keras.regularizers.l2(0.01)):
+        freq_scale, frame_scale = downsample_scale
+        if keras.backend.image_data_format() == 'channels_first':
+            bn_axis = 3
+        else:
+            bn_axis = 1
+        # kernel: (1, 1) layer
+        x = keras.layers.Conv2D(filter, kernel_size,
+                                strides=(freq_scale, frame_scale),
+                                use_bias=False,
+                                kernel_initializer=kernel_initializer,
+                                kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=bn_axis)
+        x_plus_skip_conn = layers.Add([x, input_tensor])
+        output = keras.layers.LeakyReLU(0.01)(x_plus_skip_conn)
+        return output
 
     def get_model(self, name='autoencoder_spectrogram'):
         """FCN design, autoencoder with concat skip connection"""
+        # input tensor shape: (batch, height, width, channels)
+        tf.keras.backend.set_image_data_format(data_format)
+        # dataset spectrogram output tensor shape: (batch, frequency_bins, time_frames)
+        # add one extra channel dimension to match model required tensor shape
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
         reshaped_input = tf.expand_dims(mix_input, axis=3)
 
-        # encoder
-        # 1st conv + downsampling + batch normalization
-        conv1 = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(reshaped_input)
-        downsample1 = keras.layers.Conv2D(32, self.kernel_size, strides=(2, 2), padding='same',
-                                          activation='relu', use_bias=False)(conv1)
-        bn1 = keras.layers.BatchNormalization()(downsample1)
+        # downsampling
+        res_block1 = self.identity_block(reshaped_input, 32, self.kernel_size)
+        downsample1 = self.downsample_block(res_block1, 32, self.kernel_size, (2, 2))
 
-        # 2nd conv + downsampling + batch normalization
-        conv2 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(bn1)
-        downsample2 = keras.layers.Conv2D(64, self.kernel_size, strides=(2, 2), padding='same',
-                                          activation='relu', use_bias=False)(conv2)
-        bn2 = keras.layers.BatchNormalization()(downsample2)
+        res_block2 = self.identity_block(downsample1, 64, self.kernel_size)
+        downsample2 = self.downsample_block(res_block2, 64, self.kernel_size, (2, 2))
 
-        # 3rd conv + batch normalization
-        conv3 = keras.layers.Conv2D(128, self.kernel_size, padding='same', activation='relu', use_bias=False)(bn2)
-        bn3 = keras.layers.BatchNormalization()(conv3)
+        # latent tensor, compressed features
+        res_block3 = self.identity_block(downsample2, 128, self.kernel_size)
 
-        # decoder
-        # 4th conv + upsampling + batch normalization
-        upsample1 = keras.layers.UpSampling2D((2, 2))(bn3)
-        up1_fixed_shape = keras.layers.Conv2D(64, (2, 1), activation='relu', use_bias=False)(upsample1)
-        conv4 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(
-            keras.layers.concatenate([conv2, up1_fixed_shape]))
-        bn4 = keras.layers.BatchNormalization()(conv4)
+        # upsampling
+        upsample1 = keras.layers.UpSampling2D((2, 2))(res_block3)
+        res_block4 = self.identity_block(self.crop_and_concat(upsample1, res_block2), 64, self.kernel_size)
 
-        # 5th conv + upsampling + batch normalization
-        upsample2 = keras.layers.UpSampling2D((2, 2))(bn4)
-        up2_fixed_shape = keras.layers.Conv2D(32, (2, 2), activation='relu', use_bias=False)(upsample2)
-        conv5 = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(
-            keras.layers.concatenate([conv1, up2_fixed_shape]))
-        bn5 = keras.layers.BatchNormalization()(conv5)
+        upsample2 = keras.layers.UpSampling2D((2, 2))(res_block4)
+        res_block5 = self.identity_block(self.crop_and_concat(upsample2, res_block1), 32, self.kernel_size)
 
         # output layers
-        x = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(bn5)
-        x = keras.layers.Conv2D(16, self.kernel_size, padding='same', activation='relu')(x)
-        output = keras.layers.Conv2D(4, self.kernel_size, padding='same', activation='relu')(x)
+        res_block6 = self.identity_block(res_block5, 16, self.kernel_size)
+        res_block7 = self.identity_block(res_block6, 8, self.kernel_size)
+        output = self.identity_block(res_block7, 4, self.kernel_size)
 
         # uniformly split channels into 4
-        vocals_input, bass_input, drums_input, other_input = tf.split(output, 4, axis=2)
-        vocals = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='vocals')(tf.squeeze(vocals_input))
-        bass = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='bass')(tf.squeeze(bass_input))
-        drums = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='drums')(tf.squeeze(drums_input))
-        other = keras.layers.Conv2D(1, (1, 1), padding='same', use_bias=False, name='other')(tf.squeeze(other_input))
+        vocals_input, bass_input, drums_input, other_input = tf.split(output, 4, axis=3)
+        # Lambda layer does nothing here, just to add name to the layer
+        # so that during training, the outputs of the model will find
+        # corresponding train data generated by pre-built tfrecord dataset
+        vocals = keras.layers.Lambda(lambda x: x, name='vocals')(vocals_input)
+        bass = keras.layers.Lambda(lambda x: x, name='bass')(bass_input)
+        drums = keras.layers.Lambda(lambda x: x, name='drums')(drums_input)
+        other = keras.layers.Lambda(lambda x: x, name='other')(other_input)
 
         self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
         return self.model
+
+    def crop_and_concat(self, x1, x2):
+        """
+        crop tensor x1 to match x2, x2 shape is the target shape,
+        then concatenate them along feature dimension
+        """
+        if x2 is None:
+            return x1
+        x1 = self.crop(x1, x2.get_shape().as_list())
+        return tf.concat([x1, x2], axis=3)
+
+    def crop(self, tensor, target_shape):
+        """
+        crop tensor to match target_shape,
+        remove the diff/2 items at the start and at the end,
+        keep only the central part of the vector
+        """
+        # the tensor flow in model is of shape (batch, freq_bins, time_frames, channels)
+        shape = tensor.get_shape().as_list()
+        diff_row = shape[1] - target_shape[1]
+        diff_col = shape[2] - target_shape[2]
+        assert diff_row >= 0 and diff_col >= 0  # Only positive difference allowed
+        if diff_row == 0 and diff_col == 0:
+            return tensor
+        # calculate new cropped row index
+        row_crop_start = diff_row // 2
+        row_crop_end = diff_row - row_crop_start
+        # calculate new cropped column index
+        col_crop_start = diff_col // 2
+        col_crop_end = diff_row - col_crop_start
+
+        return tensor[:, row_crop_start:-row_crop_end, col_crop_start:-col_crop_end, :]
 
     def save_weights(self, path):
         pass

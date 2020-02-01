@@ -17,34 +17,26 @@ train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
 train_data_size, valid_data_size, test_data_size = dsd100_dataset.dataset_stat()
 
 # separator model
-separator = UnetConv2dResblock(2049, 87, (15, 3))
+separator = UnetConv2dResblock(2049, 87, (5, 5))
 model = separator.get_model()
 model.summary()
-
-
-class ShowLearnintRate(tf.keras.callbacks.Callback):
-    def on_epoch_begin(self, epoch, logs=None):
-        if epoch % 10 == 0:
-            print('\nEpoch %03d: Learning rate is %6.4f.' % (epoch, self.model.optimizer.lr.numpy()))
-
 
 # callbacks: early-stopping, tensorboard
 log_dir = "./logs/unet_conv2d_resblock/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=2),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
-    ShowLearnintRate(),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0003),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=50,
+                    epochs=10,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,

@@ -12,14 +12,11 @@ def crop_and_concat(self, x1, x2):
     crop tensor x1 to match x2, x2 shape is the target shape,
     then concatenate them along feature dimension
     """
-    shape_x1 = x1.get_shape().as_list()
-    shape_x2 = x2.get_shape().as_list()
-    assert shape_x1 == shape_x2
     if x2 is None:
         return x1
     crop_helper_fn = crop_fn['1d']
     x1 = crop_helper_fn(x1, x2.get_shape().as_list())
-    return tf.concat([x1, x2], axis=shape_x1 - 1)
+    return tf.concat([x1, x2], axis=-1)
 
 
 def crop2d(self, tensor, target_shape):

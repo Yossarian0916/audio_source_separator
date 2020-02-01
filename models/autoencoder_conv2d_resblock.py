@@ -4,7 +4,7 @@ from tensorflow import keras
 import tensorflow.keras.backend as K
 
 
-class UnetConv2dResblock:
+class AutoenocderConv2dResblock:
     def __init__(self, freq_bins, time_frames, kernel_size):
         self.bins = freq_bins
         self.frames = time_frames
@@ -132,15 +132,15 @@ class UnetConv2dResblock:
         # upsampling
         # upsampling + residual identity block + Conv5
         upsample1 = keras.layers.UpSampling2D((2, 2), data_format=data_format)(res_block4)
-        conv5 = self.conv_block(self.crop_and_concat(upsample1, res_block3), [128, 128, 64], self.kernel_size)
+        conv5 = self.conv_block(upsample1, [128, 128, 64], self.kernel_size)
         res_block5 = self.identity_block(conv5, [128, 128, 64], self.kernel_size)
         # upsampling + residual identity block + Conv6
         upsample2 = keras.layers.UpSampling2D((2, 2), data_format=data_format)(res_block5)
-        conv6 = self.conv_block(self.crop_and_concat(upsample2, res_block2), [64, 64, 32], self.kernel_size)
+        conv6 = self.conv_block(upsample2, [64, 64, 32], self.kernel_size)
         res_block6 = self.identity_block(conv6, [64, 64, 32], self.kernel_size)
         # upsampling + residual identity block + Conv7
         upsample3 = keras.layers.UpSampling2D((2, 2), data_format=data_format)(res_block6)
-        conv7 = self.conv_block(self.crop_and_concat(upsample3, res_block1), [32, 32, 16], self.kernel_size)
+        conv7 = self.conv_block(upsample3, [32, 32, 16], self.kernel_size)
         res_block7 = self.identity_block(conv7, [32, 32, 16], self.kernel_size)
 
         # output layers
@@ -213,7 +213,7 @@ class UnetConv2dResblock:
     def load_weights(self, path):
         raise NotImplementedError
 
-    def save_model_plot(self, file_name='unet_conv2d_resblock_separator.png'):
+    def save_model_plot(self, file_name='autoencoder_conv2d_resblock_separator.png'):
         if self.model is not None:
             root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
             images_dir = os.path.join(root_dir, 'images')

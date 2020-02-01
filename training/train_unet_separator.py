@@ -47,7 +47,7 @@ callbacks = [
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.3, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.03, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),

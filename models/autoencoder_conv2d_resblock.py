@@ -17,7 +17,7 @@ class AutoenocderConv2dResblock:
                        filters,
                        kernel_size,
                        kernel_initializer='he_normal',
-                       kernel_regularizer=keras.regularizers.l2(0.01)):
+                       kernel_regularizer=None):
         """residual block built with identity skip connection"""
         filter1, filter2, filter3 = filters
         if keras.backend.image_data_format() == 'channels_last':
@@ -58,7 +58,7 @@ class AutoenocderConv2dResblock:
                    filters,
                    kernel_size,
                    kernel_initializer='he_normal',
-                   kernel_regularizer=keras.regularizers.l2(0.01)):
+                   kernel_regularizer=None):
         """residual block built with identity skip connection"""
         filter1, filter2, filter3 = filters
         if keras.backend.image_data_format() == 'channels_last':
@@ -109,48 +109,51 @@ class AutoenocderConv2dResblock:
         # add one extra channel dimension to match model required tensor shape
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
         reshaped_input = tf.expand_dims(mix_input, axis=-1)
+        conv0 = self.conv_block(reshaped_input, [2, 2, 4], self.kernel_size)
 
+        filters_set = [[8 << i, 8 << i, 16 << i] for i in range(4)]
         # downsampling
         # Conv1 + residual identity block + maxpooling
-        conv1 = self.conv_block(reshaped_input, [16, 16, 32], self.kernel_size)
-        res_block1 = self.identity_block(conv1, [16, 16, 32], self.kernel_size)
+        conv1 = self.conv_block(conv0, filters_set[0], self.kernel_size)
+        res_block1 = self.identity_block(conv1, filters_set[0], self.kernel_size)
         downsample1 = keras.layers.MaxPool2D((2, 2), padding='same', data_format=data_format)(res_block1)
         # Conv2 + residual identity block + maxpooling
-        conv2 = self.conv_block(downsample1, [32, 32, 64], self.kernel_size)
-        res_block2 = self.identity_block(conv2, [32, 32, 64], self.kernel_size)
+        conv2 = self.conv_block(downsample1, filters_set[1], self.kernel_size)
+        res_block2 = self.identity_block(conv2, filters_set[1], self.kernel_size)
         downsample2 = keras.layers.MaxPool2D((2, 2), padding='same', data_format=data_format)(res_block2)
         # Conv3 + residual identity block + maxpooling
-        conv3 = self.conv_block(downsample2, [64, 64, 128], self.kernel_size)
-        res_block3 = self.identity_block(conv3, [64, 64, 128], self.kernel_size)
+        conv3 = self.conv_block(downsample2, filters_set[2], self.kernel_size)
+        res_block3 = self.identity_block(conv3, filters_set[2], self.kernel_size)
         downsample3 = keras.layers.MaxPool2D((2, 2), padding='same', data_format=data_format)(res_block3)
 
         # latent tensor, compressed features
         # Conv4 + residual identity block
-        conv4 = self.conv_block(downsample3, [128, 128, 256], self.kernel_size)
-        res_block4 = self.identity_block(conv4, [128, 128, 256], self.kernel_size)
+        conv4 = self.conv_block(downsample3, filters_set[3], self.kernel_size)
+        res_block4 = self.identity_block(conv4, filters_set[3], self.kernel_size)
 
         # upsampling
         # upsampling + residual identity block + Conv5
         upsample1 = keras.layers.UpSampling2D((2, 2), data_format=data_format)(res_block4)
-        conv5 = self.conv_block(upsample1, [128, 128, 64], self.kernel_size)
-        res_block5 = self.identity_block(conv5, [128, 128, 64], self.kernel_size)
+        conv5 = self.conv_block(upsample1, filters_set[2], self.kernel_size)
+        res_block5 = self.identity_block(self.crop(conv5, res_block3.get_shape().as_list()),
+                                         filters_set[2], self.kernel_size)
         # upsampling + residual identity block + Conv6
         upsample2 = keras.layers.UpSampling2D((2, 2), data_format=data_format)(res_block5)
-        conv6 = self.conv_block(upsample2, [64, 64, 32], self.kernel_size)
-        res_block6 = self.identity_block(conv6, [64, 64, 32], self.kernel_size)
+        conv6 = self.conv_block(upsample2, filters_set[1], self.kernel_size)
+        res_block6 = self.identity_block(self.crop(conv6, res_block2.get_shape().as_list()),
+                                         filters_set[1], self.kernel_size)
         # upsampling + residual identity block + Conv7
         upsample3 = keras.layers.UpSampling2D((2, 2), data_format=data_format)(res_block6)
-        conv7 = self.conv_block(upsample3, [32, 32, 16], self.kernel_size)
-        res_block7 = self.identity_block(conv7, [32, 32, 16], self.kernel_size)
+        conv7 = self.conv_block(upsample3, filters_set[0], self.kernel_size)
+        res_block7 = self.identity_block(self.crop(conv7, res_block1.get_shape().as_list()),
+                                         filters_set[0], self.kernel_size)
 
         # output layers
-        conv8 = self.conv_block(res_block7, [16, 16, 8], self.kernel_size)
-        res_block8 = self.identity_block(conv8, [16, 16, 8], self.kernel_size)
-        conv9 = self.conv_block(res_block8, [8, 8, 4], self.kernel_size)
-        res_block9 = self.identity_block(conv9, [8, 8, 4], self.kernel_size)
+        conv8 = self.conv_block(res_block7, [8, 8, 4], self.kernel_size)
+        res_block8 = self.identity_block(conv8, [8, 8, 4], self.kernel_size)
 
         # uniformly split channels into 4
-        vocals_input, bass_input, drums_input, other_input = tf.split(res_block9, 4, axis=3)
+        vocals_input, bass_input, drums_input, other_input = tf.split(res_block8, 4, axis=3)
         # Lambda layer does nothing here, just to add name to the layer
         # so that during training, the outputs of the model will find
         # corresponding train data generated by pre-built tfrecord dataset

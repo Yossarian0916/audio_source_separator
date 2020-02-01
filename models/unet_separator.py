@@ -46,7 +46,7 @@ class UnetSeparator:
                   strides=1,
                   padding='same',
                   kernel_initializer='he_normal',
-                  kernel_regularizer=keras.regularizers.l2(0.01)):
+                  kernel_regularizer=None):
         x = keras.layers.Conv1D(filters, kernel_size,
                                 strides=strides,
                                 padding=padding,

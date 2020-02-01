@@ -40,14 +40,14 @@ class ShowLearnintRate(tf.keras.callbacks.Callback):
 log_dir = "./logs/unet_separator/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=1e-3, verbose=True, patience=20),
+        monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     tf.keras.callbacks.LearningRateScheduler(decay),
     ShowLearnintRate(),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.03, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.3, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),

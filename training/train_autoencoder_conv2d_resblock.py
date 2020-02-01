@@ -17,19 +17,19 @@ train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
 train_data_size, valid_data_size, test_data_size = dsd100_dataset.dataset_stat()
 
 # separator model
-separator = AutoenocderConv2dResblock(2049, 87, (25, 3))
+separator = AutoenocderConv2dResblock(2049, 87, (31, 5))
 model = separator.get_model()
 model.summary()
 
 # callbacks: early-stopping, tensorboard
 log_dir = "./logs/autoencoder_conv2d_resblock/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=2),
+    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.03, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.001, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),

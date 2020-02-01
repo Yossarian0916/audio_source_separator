@@ -55,7 +55,7 @@ class UnetSeparator:
                                 kernel_initializer=kernel_initializer,
                                 kernel_regularizer=kernel_regularizer)(input_tensor)
         x = keras.layers.BatchNormalization(axis=-1)(x)
-        output = keras.layers.LeakyReLU(0.01)(x)
+        output = keras.layers.ReLU()(x)
         return output
 
     def get_model(self, name='unet_separator'):

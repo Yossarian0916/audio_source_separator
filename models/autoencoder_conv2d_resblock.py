@@ -26,7 +26,7 @@ class AutoenocderConv2dResblock:
             bn_axis = 1
         # kernel: (1, 1) layer
         x = keras.layers.BatchNormalization(axis=bn_axis)(input_tensor)
-        x = keras.layers.LeakyReLU(0.01)(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter1, (1, 1),
                                 padding='same',
                                 use_bias=False,
@@ -35,7 +35,7 @@ class AutoenocderConv2dResblock:
 
         # kernel: kernel_size layer
         x = keras.layers.BatchNormalization(axis=bn_axis)(x)
-        x = keras.layers.LeakyReLU(0.01)(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter2, kernel_size,
                                 padding='same',
                                 use_bias=False,
@@ -44,7 +44,7 @@ class AutoenocderConv2dResblock:
 
         # kernel: (1, 1) layer
         x = keras.layers.BatchNormalization(axis=bn_axis)(x)
-        x = keras.layers.LeakyReLU(0.01)(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter3, (1, 1),
                                 padding='same',
                                 use_bias=False,
@@ -67,7 +67,7 @@ class AutoenocderConv2dResblock:
             bn_axis = 1
         # kernel: (1, 1) layer
         x = keras.layers.BatchNormalization(axis=bn_axis)(input_tensor)
-        x = keras.layers.LeakyReLU(0.01)(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter1, (1, 1),
                                 padding='same',
                                 use_bias=False,
@@ -76,7 +76,7 @@ class AutoenocderConv2dResblock:
 
         # kernel: kernel_size layer
         x = keras.layers.BatchNormalization(axis=bn_axis)(x)
-        x = keras.layers.LeakyReLU(0.01)(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter2, kernel_size,
                                 padding='same',
                                 use_bias=False,
@@ -85,7 +85,7 @@ class AutoenocderConv2dResblock:
 
         # kernel: (1, 1) layer
         x = keras.layers.BatchNormalization(axis=bn_axis)(x)
-        x = keras.layers.LeakyReLU(0.01)(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter3, (1, 1),
                                 padding='same',
                                 use_bias=False,
@@ -101,8 +101,8 @@ class AutoenocderConv2dResblock:
         output = keras.layers.Add()([x, shortcut])
         return output
 
-    def get_model(self, data_format='channels_last', name='unet_conv2d_resblock'):
-        """UNet structure based, consists of resnet identity blocks"""
+    def get_model(self, data_format='channels_last', name='autoencoder_conv2d_resblock'):
+        """autoencoder structure, consists of resnet identity blocks"""
         # input tensor shape: (batch, height, width, channels)
         tf.keras.backend.set_image_data_format(data_format)
         # dataset spectrogram output tensor shape: (batch, frequency_bins, time_frames)

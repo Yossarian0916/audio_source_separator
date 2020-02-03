@@ -3,7 +3,7 @@ from functools import partial
 import multiprocessing as mp
 import os
 import sys
-from utils.helper import wav2stft, wav2logspectro, get_filenames
+from utils.helper import wav2stft, wav2logspectro
 
 
 # config parameters
@@ -153,13 +153,17 @@ def generate_tfrecords_files(usage, transform):
     # create one audio sample for training and test
     if usage == 'train':
         samples = create_samples(basename='Dev')
-    if usage == 'test':
+    elif usage == 'test':
         samples = create_samples(basename='Test')
+    else:
+        raise ValueError("usage should be of type string, value is 'train' or 'test'")
     # define signal transformation to be applied on audio samples
     if transform == 'stft':
         transform_fn = wav2stft
     elif transform == 'logstft':
         transform_fn = wav2logspectro
+    else:
+        raise ValueError("transform_fn should be of type string, value is 'stft' or 'logstft'")
     # define output dataset directory
     output_dir = os.path.join(
         data_dir, 'dsd100_{}_{}'.format(usage, transform))

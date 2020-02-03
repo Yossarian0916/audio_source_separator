@@ -62,7 +62,7 @@ def wav2phase(wav_file):
     return stft_phase
 
 
-def concat_clips(audio_clips, phase_clips=None, is_dB_format=False):
+def rebuild_audio_from_spectro_clips(audio_clips, phase_clips=None, is_dB_format=False):
     # audio spectrogram format:
     # 1. normal stft spectromgram
     # 2. dB-scaled spectrogram log(epilon + S*2)

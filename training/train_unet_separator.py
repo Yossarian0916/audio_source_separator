@@ -33,7 +33,8 @@ def decay(epoch, lr):
 class ShowLearnintRate(tf.keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         if epoch % 10 == 0:
-            print('\nEpoch %03d: Learning rate is %6.4f.' % (epoch, self.model.optimizer.lr.numpy()))
+            print('\nEpoch %03d: Learning rate is %6.4f.' %
+                  (epoch, self.model.optimizer.lr.numpy()))
 
 
 # callbacks: early-stopping, tensorboard

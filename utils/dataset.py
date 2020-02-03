@@ -3,7 +3,7 @@ from functools import partial
 import multiprocessing as mp
 import os
 import sys
-from utils.helper import wav2stft, get_filenames
+from utils.helper import wav2stft, wav2logspectro, get_filenames
 
 
 # config parameters
@@ -56,7 +56,7 @@ def parse_records(serialized_example, feat_names=feat_names):
             {'vocals': sample['vocals'], 'bass': sample['bass'], 'drums': sample['drums'], 'other': sample['other']})
 
 
-def write_records(sample, basename, feat_names=feat_names, compression_type=None):
+def write_records(sample, basename, transform_fn=wav2stft, feat_names=feat_names, compression_type=None):
     # tfrecord compression type
     tfrecord_opt = tf.io.TFRecordOptions(compression_type=compression_type)
 
@@ -76,7 +76,7 @@ def write_records(sample, basename, feat_names=feat_names, compression_type=None
     #                'other':(None, 2049, 87)}
     audio_clips = {key: None for key in feat_names}
     for feat in feat_names:
-        audio_clips[feat] = wav2stft(sample[feat])
+        audio_clips[feat] = transform_fn(sample[feat])
     # number of music clips after chopping each audio into 2-second-long sections
     clip_num = len(audio_clips['mix'])
 
@@ -144,30 +144,35 @@ def create_samples(basename='Dev', dataset_name='DSD100', feat_names=feat_names)
     return samples
 
 
-def generate_tfrecords_files(usage):
-    # create train dataset
+def generate_tfrecords_files(usage, transform):
+    # get data wav files
     current_path = os.path.abspath(__file__)
     utils_path = os.path.dirname(current_path)
     root = os.path.dirname(utils_path)
     data_dir = os.path.join(root, 'data')
-    output_dir = os.path.join(data_dir, 'dsd100_{}_tfrecords'.format(usage))
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    basename = os.path.join(output_dir, usage)
-
+    # create one audio sample for training and test
     if usage == 'train':
         samples = create_samples(basename='Dev')
     if usage == 'test':
         samples = create_samples(basename='Test')
-    write_records_partial = partial(write_records, basename=basename)
+    # define signal transformation to be applied on audio samples
+    if transform == 'stft':
+        transform_fn = wav2stft
+    elif transform == 'logstft':
+        transform_fn = wav2logspectro
+    # define output dataset directory
+    output_dir = os.path.join(
+        data_dir, 'dsd100_{}_{}'.format(usage, transform))
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    print('output path: ', output_dir)
+    basename = os.path.join(output_dir, usage)
+    # generate tfrecord file in parallel
+    write_records_partial = partial(
+        write_records, basename=basename, transform_fn=transform_fn)
     # use process pool to create tfrecords files
     num_cores = os.cpu_count()
     pool = mp.Pool(processes=num_cores)
     result = pool.map_async(write_records_partial, samples)
     pool.close()
     pool.join()
-
-
-if __name__ == '__main__':
-    generate_tfrecords_files('train')
-    generate_tfrecords_files('test')

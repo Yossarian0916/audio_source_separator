@@ -17,7 +17,7 @@ train_dataset, valid_dataset, test_dataset = dsd100_dataset.get_datasets()
 train_data_size, valid_data_size, test_data_size = dsd100_dataset.dataset_stat()
 
 # separator model
-separator = AutoenocderConv2dResblock(2049, 87, (31, 5))
+separator = AutoenocderConv2dResblock(2049, 87, (3, 3))
 model = separator.get_model()
 model.summary()
 

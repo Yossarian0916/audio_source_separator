@@ -5,7 +5,6 @@ data/
 notebooks/checkpoints/
 notebooks/logs/
 training/logs/
-saved_model/
 
 # remove pycharm settings
 .idea/

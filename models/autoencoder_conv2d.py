@@ -11,51 +11,6 @@ class AutoencoderConv2d:
         self.model = None
         self.kernel_size = kernel_size
 
-    def crop_and_concat(self, x1, x2):
-        """
-        crop tensor x1 to match x2, x2 shape is the target shape,
-        then concatenate them along feature dimension
-        """
-        if x2 is None:
-            return x1
-        x1 = self.crop(x1, x2.get_shape().as_list())
-        return tf.concat([x1, x2], axis=-1)
-
-    def crop(self, tensor, target_shape):
-        """
-        crop tensor to match target_shape,
-        remove the diff/2 items at the start and at the end,
-        keep only the central part of the vector
-        """
-        # the tensor flow in model is of shape (batch, freq_bins, time_frames, channels)
-        shape = tensor.get_shape().as_list()
-        diff_row = shape[1] - target_shape[1]
-        diff_col = shape[2] - target_shape[2]
-        diff_channel = shape[3] - target_shape[3]
-        if diff_row < 0 or diff_col < 0 or diff_channel < 0:
-            raise ValueError('input tensor cannot be shaped as target_shape')
-        row_slice = slice(0, None)
-        col_slice = slice(0, None)
-        channel_slice = slice(0, None)
-        if diff_row == 0 and diff_col == 0 and diff_channel == 0:
-            return tensor
-        if diff_row != 0:
-            # calculate new cropped row index
-            row_crop_start = diff_row // 2
-            row_crop_end = diff_row - row_crop_start
-            row_slice = slice(row_crop_start, -row_crop_end)
-        if diff_col != 0:
-            # calculate new cropped column index
-            col_crop_start = diff_col // 2
-            col_crop_end = diff_col - col_crop_start
-            col_slice = slice(col_crop_start, -col_crop_end)
-        if diff_channel != 0:
-            # calculate new cropped channel axis index
-            channel_crop_start = diff_channel // 2
-            channel_crop_end = diff_channel - channel_crop_start
-            channel_slice = slice(channel_crop_start, -channel_crop_end)
-        return tensor[:, row_slice, col_slice, channel_slice]
-
     def get_model(self, name='autoencoder_spectrogram'):
         """FCN design, autoencoder with concat skip connection"""
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
@@ -66,17 +21,17 @@ class AutoencoderConv2d:
         conv1 = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(reshaped_input)
         downsample1 = keras.layers.Conv2D(32, self.kernel_size, strides=(2, 2), padding='same',
                                           activation='relu', use_bias=False)(conv1)
-        bn1 = keras.layers.BatchNormalization()(downsample1)
+        bn1 = keras.layers.BatchNormalization()(downsample1, training=True)
 
         # 2nd conv + downsampling + batch normalization
         conv2 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(bn1)
         downsample2 = keras.layers.Conv2D(64, self.kernel_size, strides=(2, 2), padding='same',
                                           activation='relu', use_bias=False)(conv2)
-        bn2 = keras.layers.BatchNormalization()(downsample2)
+        bn2 = keras.layers.BatchNormalization()(downsample2, training=True)
 
         # 3rd conv + batch normalization
         conv3 = keras.layers.Conv2D(128, self.kernel_size, padding='same', activation='relu', use_bias=False)(bn2)
-        bn3 = keras.layers.BatchNormalization()(conv3)
+        bn3 = keras.layers.BatchNormalization()(conv3, training=True)
 
         # decoder
         # 4th conv + upsampling + batch normalization
@@ -84,14 +39,15 @@ class AutoencoderConv2d:
         up1_fixed_shape = keras.layers.Conv2D(64, (2, 1), activation='relu', use_bias=False)(upsample1)
         conv4 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(
             keras.layers.concatenate([conv2, up1_fixed_shape]))
-        bn4 = keras.layers.BatchNormalization()(conv4)
+        bn4 = keras.layers.BatchNormalization()(conv4, training=True)
 
         # 5th conv + upsampling + batch normalization
         upsample2 = keras.layers.UpSampling2D((2, 2))(bn4)
-        up2_fixed_shape = keras.layers.Conv2D(32, (2, 2), activation='relu', use_bias=False)(upsample2)
+        up2_fixed_shape = keras.layers.Conv2D(
+            32, (2, 2), activation='relu', use_bias=False)(upsample2)
         conv5 = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(
             keras.layers.concatenate([conv1, up2_fixed_shape]))
-        bn5 = keras.layers.BatchNormalization()(conv5)
+        bn5 = keras.layers.BatchNormalization()(conv5, training=True)
 
         # output layers
         x = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(bn5)
@@ -102,12 +58,17 @@ class AutoencoderConv2d:
         # Lambda layer needs to assign name to the layer
         # so that during training, the outputs of the model will find
         # corresponding train data generated by pre-built tfrecord dataset
-        vocals = keras.layers.Lambda(lambda x: x[:, :, :, 0], name='vocals')(output)
-        bass = keras.layers.Lambda(lambda x: x[:, :, :, 1], name='bass')(output)
-        drums = keras.layers.Lambda(lambda x: x[:, :, :, 2], name='drums')(output)
-        other = keras.layers.Lambda(lambda x: x[:, :, :, 3], name='other')(output)
+        vocals = keras.layers.Lambda(
+            lambda x: x[:, :, :, 0], name='vocals')(output)
+        bass = keras.layers.Lambda(
+            lambda x: x[:, :, :, 1], name='bass')(output)
+        drums = keras.layers.Lambda(
+            lambda x: x[:, :, :, 2], name='drums')(output)
+        other = keras.layers.Lambda(
+            lambda x: x[:, :, :, 3], name='other')(output)
 
-        self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
+        self.model = keras.Model(inputs=[mix_input], outputs=[
+                                 vocals, bass, drums, other], name=name)
         return self.model
 
     def save_weights(self, path):
@@ -123,18 +84,22 @@ class AutoencoderConv2d:
             file_path = os.path.join(images_dir, file_name)
             keras.utils.plot_model(self.model, file_path)
         else:
-            raise ValueError("no model has been built yet! call get_model() first!")
+            raise ValueError(
+                "no model has been built yet! call get_model() first!")
 
     def model_summary(self):
         if self.model is not None:
-            trainable_count = np.sum([K.count_params(w) for w in self.model.trainable_weights])
-            non_trainable_count = np.sum([K.count_params(w) for w in self.model.non_trainable_weights])
+            trainable_count = np.sum([K.count_params(w)
+                                      for w in self.model.trainable_weights])
+            non_trainable_count = np.sum(
+                [K.count_params(w) for w in self.model.non_trainable_weights])
             self.summary = {
                 'total_parameters': trainable_count + non_trainable_count,
                 'trainable_parameters': trainable_count,
                 'non_trainable_parameters': non_trainable_count}
         else:
-            raise ValueError("no model has been built yet! call get_model() first!")
+            raise ValueError(
+                "no model has been built yet! call get_model() first!")
 
     def __str__(self):
         return self.summary

@@ -25,7 +25,7 @@ class AutoenocderConv2dResblock:
         else:
             bn_axis = 1
         # kernel: (1, 1) layer
-        x = keras.layers.BatchNormalization(axis=bn_axis)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=bn_axis)(input_tensor, training=True)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter1, (1, 1),
                                 padding='same',
@@ -34,7 +34,7 @@ class AutoenocderConv2dResblock:
                                 kernel_regularizer=kernel_regularizer)(x)
 
         # kernel: kernel_size layer
-        x = keras.layers.BatchNormalization(axis=bn_axis)(x)
+        x = keras.layers.BatchNormalization(axis=bn_axis)(x, training=True)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter2, kernel_size,
                                 padding='same',
@@ -43,7 +43,7 @@ class AutoenocderConv2dResblock:
                                 kernel_regularizer=kernel_regularizer)(x)
 
         # kernel: (1, 1) layer
-        x = keras.layers.BatchNormalization(axis=bn_axis)(x)
+        x = keras.layers.BatchNormalization(axis=bn_axis)(x, training=True)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter3, (1, 1),
                                 padding='same',
@@ -66,7 +66,7 @@ class AutoenocderConv2dResblock:
         else:
             bn_axis = 1
         # kernel: (1, 1) layer
-        x = keras.layers.BatchNormalization(axis=bn_axis)(input_tensor)
+        x = keras.layers.BatchNormalization(axis=bn_axis)(input_tensor, training=True)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter1, (1, 1),
                                 padding='same',
@@ -75,7 +75,7 @@ class AutoenocderConv2dResblock:
                                 kernel_regularizer=kernel_regularizer)(x)
 
         # kernel: kernel_size layer
-        x = keras.layers.BatchNormalization(axis=bn_axis)(x)
+        x = keras.layers.BatchNormalization(axis=bn_axis)(x, training=True)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter2, kernel_size,
                                 padding='same',
@@ -84,7 +84,7 @@ class AutoenocderConv2dResblock:
                                 kernel_regularizer=kernel_regularizer)(x)
 
         # kernel: (1, 1) layer
-        x = keras.layers.BatchNormalization(axis=bn_axis)(x)
+        x = keras.layers.BatchNormalization(axis=bn_axis)(x, training=True)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(filter3, (1, 1),
                                 padding='same',
@@ -97,7 +97,7 @@ class AutoenocderConv2dResblock:
                                        use_bias=False,
                                        kernel_initializer=kernel_initializer,
                                        kernel_regularizer=kernel_regularizer)(input_tensor)
-        shortcut = keras.layers.BatchNormalization(axis=bn_axis)(shortcut)
+        shortcut = keras.layers.BatchNormalization(axis=bn_axis)(shortcut, training=True)
         output = keras.layers.Add()([x, shortcut])
         return output
 

@@ -3,7 +3,7 @@ from functools import partial
 import multiprocessing as mp
 import os
 import sys
-from utils.helper import wav2stft, wav2logspectro
+from utils.helper import wav2stft, wav2logspectro, wav_to_spectrogram_clips
 
 
 # config parameters

@@ -33,6 +33,19 @@ def wav2logspectro(wav_file):
     return db_spectro_clip
 
 
+def wav_to_spectrogram_clips(wav_file):
+    """convert audio into spectorgram, then chop it into 2d-segmentation of 87 frames"""
+    # convert audio into spectorgram
+    sound, sr = librosa.load(wav_file, sr=SR)
+    stft = librosa.stft(sound, n_fft=N_FFT, hop_length=HOP_LEN, win_length=WIN_LEN)
+    mag, phase = librosa.magphase(stft)
+    # chop magnitude of spectrogram into clips, each has 2049 bins, 87 frames
+    stft_seg = np.empty((0, FREQ_BINS, TIME_FRAMES))
+    for i in range(math.floor(mag.shape(1)/TIME_FRAMES)):
+        stft_seg = np.concatenate((stft_seg, mag[:, i * TIME_FRAMES:(i + 1) * TIME_FRAMES]))
+    return stft_seg
+
+
 def wav2stft(wav_file):
     """return absolute magnitude of STFT spectrum"""
     stft_clip = np.empty((0, FREQ_BINS, TIME_FRAMES))

@@ -55,6 +55,7 @@ class UnetSeparator:
                                 use_bias=False,
                                 kernel_initializer=kernel_initializer,
                                 kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.LayerNormalization()(x)
         output = keras.layers.ReLU(name=name)(x)
         return output
 

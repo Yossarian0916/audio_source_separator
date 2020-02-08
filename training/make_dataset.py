@@ -24,12 +24,9 @@ class DSD100Dataset:
     def build_datasets(self):
         dsd100_train_tfrecords, dsd100_test_tfrecords = self.get_tfrecords()
         # define tfrecords for datasets
-        self.train_tfrecords = dsd100_train_tfrecords + \
-            dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
-        self.valid_tfrecords = dsd100_test_tfrecords[len(
-            dsd100_test_tfrecords)//2:]
-        self.test_tfrecords = dsd100_test_tfrecords[len(
-            dsd100_test_tfrecords)//2:]
+        self.train_tfrecords = dsd100_train_tfrecords
+        self.valid_tfrecords = dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//4]
+        self.test_tfrecords = dsd100_test_tfrecords
         # build datasets
         self.build_train_dataset(self.train_tfrecords)
         self.build_valid_dataset(self.valid_tfrecords)
@@ -73,8 +70,8 @@ class DSD100Dataset:
         return os.path.join(root_dir, 'data')
 
     def get_tfrecords(self):
-        dsd100_train_dir = os.path.join(self.data_dir, 'dsd100_train_logstft')
-        dsd100_test_dir = os.path.join(self.data_dir, 'dsd100_test_logstft')
+        dsd100_train_dir = os.path.join(self.data_dir, 'dsd100_train_stft')
+        dsd100_test_dir = os.path.join(self.data_dir, 'dsd100_test_stft')
         dsd100_train_tfrecords = get_filenames(dsd100_train_dir+'/*')
         dsd100_test_tfrecords = get_filenames(dsd100_test_dir+'/*')
         return dsd100_train_tfrecords, dsd100_test_tfrecords

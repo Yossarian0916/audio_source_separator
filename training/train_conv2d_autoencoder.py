@@ -9,7 +9,7 @@ from training.make_dataset import DSD100Dataset
 
 
 # hyper-parameter
-BATCH_SIZE = 4
+BATCH_SIZE = 32
 
 # load dataset
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)

@@ -9,7 +9,7 @@ from training.make_dataset import DSD100Dataset
 
 
 # hyper-parameter
-BATCH_SIZE = 4
+BATCH_SIZE = 32
 
 # load dataset
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
@@ -24,7 +24,7 @@ model.summary()
 # callbacks: early-stopping, tensorboard
 log_dir = "./logs/autoencoder_conv2d_resblock/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
+    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=10),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
 ]
 
@@ -36,7 +36,7 @@ model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=20,
+                    epochs=50,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,

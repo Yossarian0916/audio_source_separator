@@ -169,7 +169,7 @@ def generate_tfrecords_files(usage, transform):
         data_dir, 'dsd100_{}_{}'.format(usage, transform))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    print('output path: ', output_dir)
+    print('output path: ', output_dir,  '\n......')
     basename = os.path.join(output_dir, usage)
     # generate tfrecord file in parallel
     write_records_partial = partial(

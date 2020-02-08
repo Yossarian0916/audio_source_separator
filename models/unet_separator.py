@@ -88,8 +88,7 @@ class UnetSeparator:
 
         # output layer
         output = keras.layers.Add()([conv7, mix_input])
-        # replicate output tensor 4 times along temporal  axis
-        output = self.tile(output, (1, 4))
+        output = self.conv1d(output, self.frames * 4, 15, padding='same')
 
         # uniformly split tensor along time_frames axis into 4 inputs
         vocals_input, bass_input, drums_input, other_input = tf.split(

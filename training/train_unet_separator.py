@@ -24,7 +24,7 @@ model.summary()
 def decay(epoch, lr):
     if lr < 0.0001:
         return lr
-    if epoch < 20:
+    if epoch < 50:
         return lr
     elif epoch % 10 == 0:
         return 0.1 * lr
@@ -40,7 +40,7 @@ class ShowLearnintRate(tf.keras.callbacks.Callback):
 log_dir = "./logs/unet_separator/" + datetime.now().strftime("%Y%m%d_%H%M%S")
 callbacks = [
     tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=1e-3, verbose=True, patience=15),
+        monitor='val_loss', min_delta=1e-3, verbose=True, patience=10),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     tf.keras.LearningRateScheduler(decay),
     ShowLearningRate(epoch=10),

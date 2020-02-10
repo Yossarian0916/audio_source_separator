@@ -101,8 +101,7 @@ class UnetSeparator:
         drums = self.conv1d(drums_input, self.frames, 15, name='drums')
         other = self.conv1d(other_input, self.frames, 15, name='other')
 
-        self.model = keras.Model(inputs=[mix_input], outputs=[
-                                 vocals, bass, drums, other], name=name)
+        self.model = keras.Model(inputs=[mix_input], outputs=[vocals, bass, drums, other], name=name)
         return self.model
 
     def save_weights(self, path):
@@ -136,6 +135,7 @@ class UnetSeparator:
                 "no model has been built yet! call get_model() first!")
 
     def __str__(self):
+        self.model_summary()
         return self.summary
 
     __repr__ = __str__

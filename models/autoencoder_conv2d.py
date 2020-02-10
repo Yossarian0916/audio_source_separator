@@ -16,42 +16,51 @@ class AutoencoderConv2d:
         mix_input = keras.Input(shape=(self.bins, self.frames), name='mix')
         reshaped_input = tf.expand_dims(mix_input, axis=3)
 
+        x = keras.layers.Conv2D(4, self.kernel_size, padding='same', activation='relu')(reshaped_input)
+        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.Conv2D(8, self.kernel_size, padding='same', activation='relu')(x)
+        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.Conv2D(16, self.kernel_size, padding='same', activation='relu')(x)
+        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(x)
+        x = keras.layers.LayerNormalization()(x)
+
         # encoder
         # 1st conv + downsampling + batch normalization
-        conv1 = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(reshaped_input)
-        downsample1 = keras.layers.Conv2D(32, self.kernel_size, strides=(2, 2), padding='same',
+        conv1 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(x)
+        downsample1 = keras.layers.Conv2D(64, self.kernel_size, strides=(2, 2), padding='same',
                                           activation='relu', use_bias=False)(conv1)
-        bn1 = keras.layers.BatchNormalization()(downsample1, training=True)
+        norm1 = keras.layers.LayerNormalization()(downsample1)
 
         # 2nd conv + downsampling + batch normalization
-        conv2 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(bn1)
-        downsample2 = keras.layers.Conv2D(64, self.kernel_size, strides=(2, 2), padding='same',
+        conv2 = keras.layers.Conv2D(128, self.kernel_size, padding='same', activation='relu')(norm1)
+        downsample2 = keras.layers.Conv2D(128, self.kernel_size, strides=(2, 2), padding='same',
                                           activation='relu', use_bias=False)(conv2)
-        bn2 = keras.layers.BatchNormalization()(downsample2, training=True)
+        norm2 = keras.layers.LayerNormalization()(downsample2)
 
         # 3rd conv + batch normalization
-        conv3 = keras.layers.Conv2D(128, self.kernel_size, padding='same', activation='relu', use_bias=False)(bn2)
-        bn3 = keras.layers.BatchNormalization()(conv3, training=True)
+        conv3 = keras.layers.Conv2D(256, self.kernel_size, padding='same', activation='relu', use_bias=False)(norm2)
+        norm3 = keras.layers.LayerNormalization()(conv3)
 
         # decoder
         # 4th conv + upsampling + batch normalization
-        upsample1 = keras.layers.UpSampling2D((2, 2))(bn3)
-        up1_fixed_shape = keras.layers.Conv2D(64, (2, 1), activation='relu', use_bias=False)(upsample1)
-        conv4 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(
+        upsample1 = keras.layers.UpSampling2D((2, 2))(norm3)
+        up1_fixed_shape = keras.layers.Conv2D(128, (2, 1), activation='relu', use_bias=False)(upsample1)
+        conv4 = keras.layers.Conv2D(128, self.kernel_size, padding='same', activation='relu')(
             keras.layers.concatenate([conv2, up1_fixed_shape]))
-        bn4 = keras.layers.BatchNormalization()(conv4, training=True)
+        norm4 = keras.layers.LayerNormalization()(conv4)
 
         # 5th conv + upsampling + batch normalization
-        upsample2 = keras.layers.UpSampling2D((2, 2))(bn4)
-        up2_fixed_shape = keras.layers.Conv2D(
-            32, (2, 2), activation='relu', use_bias=False)(upsample2)
-        conv5 = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(
+        upsample2 = keras.layers.UpSampling2D((2, 2))(norm4)
+        up2_fixed_shape = keras.layers.Conv2D(32, (2, 2), activation='relu', use_bias=False)(upsample2)
+        conv5 = keras.layers.Conv2D(64, self.kernel_size, padding='same', activation='relu')(
             keras.layers.concatenate([conv1, up2_fixed_shape]))
-        bn5 = keras.layers.BatchNormalization()(conv5, training=True)
+        norm5 = keras.layers.LayerNormalization()(conv5)
 
         # output layers
-        x = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(bn5)
+        x = keras.layers.Conv2D(32, self.kernel_size, padding='same', activation='relu')(norm5)
         x = keras.layers.Conv2D(16, self.kernel_size, padding='same', activation='relu')(x)
+        x = keras.layers.Conv2D(8, self.kernel_size, padding='same', activation='relu')(x)
         output = keras.layers.Conv2D(4, self.kernel_size, padding='same', activation='relu')(x)
 
         # uniformly split channels into 4

@@ -7,8 +7,10 @@ import os
 from models.unet_dae import UnetAutoencoder
 from training.make_dataset import DSD100Dataset
 
+
+tf.get_logger().setLevel('ERROR')
 # hyper-parameter
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 
 # load dataset
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
@@ -22,32 +24,22 @@ model.summary()
 
 
 def decay(epoch, lr):
-    if lr < 0.0001:
-        return lr
     if epoch < 50:
         return lr
     elif epoch % 10 == 0:
-        return 0.5 * lr
-
-
-class ShowLearnintRate(tf.keras.callbacks.Callback):
-    def on_epoch_begin(self, epoch, logs=None):
-        if epoch % 10 == 0:
-            print('\nEpoch %03d: Learning rate is %6.4f.' % (epoch, self.model.optimizer.lr.numpy()))
+        return 0.8 * lr
 
 
 # callbacks: early-stopping, tensorboard
-log_dir = "./logs/unet_dae_separator/" + datetime.now().strftime("%Y%m%d_%H%M%S")
+log_dir = "./logs/unet_dae_separator/" + datetime.now().strftime("%Y%m%d_%H%M")
 callbacks = [
-    tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=1e-3, verbose=True, patience=3),
+    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, patience=2),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
     tf.keras.callbacks.LearningRateScheduler(decay),
-    ShowLearnintRate(),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.3, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
@@ -55,16 +47,21 @@ model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=
 
 history = model.fit(train_dataset,
                     epochs=100,
+                    verbose=2,
+                    callbacks=callbacks,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,
-                    callbacks=callbacks)
+                    validation_freq=10,
+                    max_queue_size=10,
+                    workers=8,
+                    use_multiprocessing=True)
 
 # save model
-date_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
+date_time = datetime.now().strftime("%Y%m%d_%H%M")
 current_file_path = os.path.abspath(__file__)
 root = os.path.dirname(os.path.dirname(current_file_path))
 saved_model_dir = os.path.join(root, 'saved_model')
 saved_model_name = os.path.join(
-    saved_model_dir, 'unet_dae_separator?time={}.h5'.format(date_time))
+    saved_model_dir, 'unet_dae_layerNormalization?time={}.h5'.format(date_time))
 model.save(saved_model_name)

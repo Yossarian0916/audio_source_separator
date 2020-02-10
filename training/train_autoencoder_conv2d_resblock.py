@@ -9,7 +9,7 @@ from training.make_dataset import DSD100Dataset
 
 
 # hyper-parameter
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 # load dataset
 dsd100_dataset = DSD100Dataset(batch_size=BATCH_SIZE)
@@ -22,14 +22,14 @@ model = separator.get_model()
 model.summary()
 
 # callbacks: early-stopping, tensorboard
-log_dir = "./logs/autoencoder_conv2d_resblock/" + datetime.now().strftime("%Y%m%d_%H%M%S")
+log_dir = "./logs/autoencoder_conv2d_resblock/" + datetime.now().strftime("%Y%m%d_%H%M")
 callbacks = [
     tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=10),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.03, momentum=0.9, nesterov=True),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
@@ -37,13 +37,17 @@ model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=
 
 history = model.fit(train_dataset,
                     epochs=50,
+                    callbacks=callbacks,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,
-                    callbacks=callbacks)
+                    validation_freq=10,
+                    max_queue_size=10,
+                    workers=8,
+                    use_multiprocessing=True)
 
 # save model
-date_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
+date_time = datetime.now().strftime("%Y%m%d_%H%M")
 current_file_path = os.path.abspath(__file__)
 root = os.path.dirname(os.path.dirname(current_file_path))
 saved_model_dir = os.path.join(root, 'saved_model')

@@ -3,7 +3,7 @@ from functools import partial
 import multiprocessing as mp
 import os
 import sys
-from utils.helper import wav2stft, wav2logspectro, wav_to_spectrogram_clips
+from utils.helper import wav_to_spectrogram_clips, wav_to_log_spectrogram_clips
 
 
 # config parameters
@@ -56,7 +56,7 @@ def parse_records(serialized_example, feat_names=feat_names):
             {'vocals': sample['vocals'], 'bass': sample['bass'], 'drums': sample['drums'], 'other': sample['other']})
 
 
-def write_records(sample, basename, transform_fn=wav2stft, feat_names=feat_names, compression_type=None):
+def write_records(sample, basename, transform_fn=wav_to_spectrogram_clips, feat_names=feat_names, compression_type=None):
     # tfrecord compression type
     tfrecord_opt = tf.io.TFRecordOptions(compression_type=compression_type)
 
@@ -159,9 +159,9 @@ def generate_tfrecords_files(usage, transform):
         raise ValueError("usage should be of type string, value is 'train' or 'test'")
     # define signal transformation to be applied on audio samples
     if transform == 'stft':
-        transform_fn = wav2stft
+        transform_fn = wav_to_spectrogram_clips
     elif transform == 'logstft':
-        transform_fn = wav2logspectro
+        transform_fn = wav_to_log_spectrogram_clips
     else:
         raise ValueError("transform_fn should be of type string, value is 'stft' or 'logstft'")
     # define output dataset directory

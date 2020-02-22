@@ -8,71 +8,74 @@ from utils.config import STFT_CONFIG
 
 
 # parameters
-FREQ_BINS = STFT_CONFIG['FREQ_BINS']
-TIME_FRAMES = STFT_CONFIG['TIME_FRAMES']
 N_FFT = STFT_CONFIG['N_FFT']
 HOP_LEN = STFT_CONFIG['HOP_LEN']
 WIN_LEN = STFT_CONFIG['WIN_LEN']
 SR = STFT_CONFIG['SR']
 CLIP_LEN = STFT_CONFIG['CLIP_LEN']
 
-
-def wav2logspectro(wav_file):
-    """return log(1+spectrogram) of a given audio"""
-    db_spectro_clip = np.empty((0, FREQ_BINS, TIME_FRAMES))
-    duration = librosa.get_duration(filename=wav_file)
-    for i in range(math.floor(duration/CLIP_LEN)):
-        sound, sr = librosa.load(
-            wav_file, sr=SR, offset=i*CLIP_LEN, duration=CLIP_LEN)
-        stft = librosa.stft(sound, n_fft=N_FFT,
-                            hop_length=HOP_LEN, win_length=WIN_LEN)
-        mag, phase = librosa.magphase(stft)
-        db_spectro = librosa.amplitude_to_db(mag)
-        db_spectro_clip = np.concatenate(
-            (db_spectro_clip, db_spectro[np.newaxis, ...]), axis=0)
-    return db_spectro_clip
+FREQ_BINS = WIN_LEN // 2 + 1
+TIME_FRAMES = math.ceil(HOP_LEN / SR)
 
 
 def wav_to_spectrogram_clips(wav_file):
-    """convert audio into spectorgram, then chop it into 2d-segmentation of 87 frames"""
+    """convert audio into spectorgram, then chop it into 2d-segmentation of 100 frames"""
     # convert audio into spectorgram
     sound, sr = librosa.load(wav_file, sr=SR)
     stft = librosa.stft(sound, n_fft=N_FFT, hop_length=HOP_LEN, win_length=WIN_LEN)
     mag, phase = librosa.magphase(stft)
-    # chop magnitude of spectrogram into clips, each has 2049 bins, 87 frames
-    stft_seg = np.empty((0, FREQ_BINS, TIME_FRAMES))
-    for i in range(math.floor(mag.shape(1)/TIME_FRAMES)):
-        stft_seg = np.concatenate((stft_seg, mag[:, i * TIME_FRAMES:(i + 1) * TIME_FRAMES]))
-    return stft_seg
+    # chop magnitude of spectrogram into clips, each has 1025 bins, 100 frames
+    stft_clips = np.empty((0, FREQ_BINS, 100))
+    for i in range(math.floor(mag.shape[1] / 100)):
+        stft_clips = np.concatenate((stft_clips, mag[np.newaxis, :, i * 100: (i + 1) * 100]))
+    return stft_clips
 
 
-def wav2stft(wav_file):
-    """return absolute magnitude of STFT spectrum"""
-    stft_clip = np.empty((0, FREQ_BINS, TIME_FRAMES))
+def wav_to_log_spectrogram_clips(wav_file):
+    """convert audio into logrithmic spectorgram, then chop it into 2d-segmentation of 100 frames"""
+    # convert audio into spectorgram
+    sound, sr = librosa.load(wav_file, sr=SR)
+    stft = librosa.stft(sound, n_fft=N_FFT, hop_length=HOP_LEN, win_length=WIN_LEN)
+    mag, phase = librosa.magphase(stft)
+    db_spectro = librosa.amplitude_to_db(mag)
+    # chop magnitude of spectrogram into clips, each has 1025 bins, 100 frames
+    db_spectro_clips = np.empty((0, FREQ_BINS, 100))
+    for i in range(math.floor(mag.shape[1] / 100)):
+        db_spectro_clips = np.concatenate((db_spectro_clips, db_spectro[np.newaxis, :, i * 100: (i + 1) * 100]))
+    return db_spectro_clips
+
+
+def wav_clips_to_spectrogram(wav_file):
+    """
+    chop audio file into 2-second long clip,
+    then convert to waveform array,
+    then convert to spectrogram
+    """
+    stft_clips = np.empty((0, FREQ_BINS, TIME_FRAMES))
     duration = librosa.get_duration(filename=wav_file)
     for i in range(math.floor(duration/CLIP_LEN)):
-        sound, sr = librosa.load(
-            wav_file, sr=SR, offset=i*CLIP_LEN, duration=CLIP_LEN)
-        stft = librosa.stft(sound, n_fft=N_FFT,
-                            hop_length=HOP_LEN, win_length=WIN_LEN)
+        sound, sr = librosa.load(wav_file, sr=SR, offset=i * CLIP_LEN, duration=CLIP_LEN)
+        stft = librosa.stft(sound, n_fft=N_FFT, hop_length=HOP_LEN, win_length=WIN_LEN)
         mag, phase = librosa.magphase(stft)
-        stft_clip = np.concatenate((stft_clip, mag[np.newaxis, ...]), axis=0)
-    return stft_clip
+        stft_clips = np.concatenate((stft_clips, mag[np.newaxis, ...]), axis=0)
+    return stft_clips
 
 
-def wav2phase(wav_file):
-    """return phase of STFT spectrum"""
-    stft_phase = np.empty((0, FREQ_BINS, TIME_FRAMES))
+def wav_clips_to_log_spectrogram(wav_file):
+    """
+    chop audio file into 2-second long clip,
+    then convert to waveform array,
+    then convert to log(1+spectrogram) of a given audio
+    """
+    db_spectro_clips = np.empty((0, FREQ_BINS, TIME_FRAMES))
     duration = librosa.get_duration(filename=wav_file)
-    for i in range(math.floor(duration/CLIP_LEN)):
-        sound, sr = librosa.load(
-            wav_file, sr=SR, offset=i*CLIP_LEN, duration=CLIP_LEN)
-        stft = librosa.stft(sound, n_fft=N_FFT,
-                            hop_length=HOP_LEN, win_length=WIN_LEN)
+    for i in range(math.floor(duration / CLIP_LEN)):
+        sound, sr = librosa.load(wav_file, sr=SR, offset=i * CLIP_LEN, duration=CLIP_LEN)
+        stft = librosa.stft(sound, n_fft=N_FFT, hop_length=HOP_LEN, win_length=WIN_LEN)
         mag, phase = librosa.magphase(stft)
-        stft_phase = np.concatenate(
-            (stft_phase, phase[np.newaxis, ...]), axis=0)
-    return stft_phase
+        db_spectro = librosa.amplitude_to_db(mag)
+        db_spectro_clips = np.concatenate((db_spectro_clips, db_spectro[np.newaxis, ...]), axis=0)
+    return db_spectro_clips
 
 
 def rebuild_audio_from_spectro_clips(audio_clips, phase_clips=None, is_dB_format=False):
@@ -102,23 +105,3 @@ def get_filenames(path):
     file_path = os.path.join(data_dir, path)
     filenames = glob.glob(os.path.join(file_path), recursive=True)
     return filenames
-
-
-def get_stft(path):
-    """return np.ndarray containing STFT magnitude of wav files found in given path"""
-    files = get_filenames(path)
-    clips = np.empty((0, FREQ_BINS, TIME_FRAMES))
-    for wav in files:
-        stft_clip = wav2stft(wav)
-        clips = np.concatenate((clips, stft_clip), axis=0)
-    return clips
-
-
-def get_phase(path):
-    """return np.ndarray containing STFT phase info of wav files found in given path"""
-    files = get_filenames(path)
-    clips = np.empty((0, FREQ_BINS, TIME_FRAMES))
-    for wav in files:
-        stft_phase = wav2phase(wav)
-        clips = np.concatenate((clips, stft_phase), axis=0)
-    return clips

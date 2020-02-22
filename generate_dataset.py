@@ -17,9 +17,9 @@ def main():
     # pass arguments to generate dataset tfrecords
     args = parser.parse_args()
     if args.usage not in ['train', 'test']:
-        raise argparse.ArgumentError(usage, 'should be of type string, value is train or test')
+        raise argparse.ArgumentError(args.usage, 'should be of type string, value is train or test')
     if args.audio_transform not in ['stft', 'logstft']:
-        raise argparse.ArgumentError(audio_transform, 'should be of type string, value is stft or logstft')
+        raise argparse.ArgumentError(args.audio_transform, 'should be of type string, value is stft or logstft')
     print('\nGenerating tfrecords: ', args.usage, 'data samples with', args.audio_transform, '...')
     # generate dataset tfrecord files with given transformation function
     generate_tfrecords_files(str(args.usage), str(args.audio_transform))

@@ -24,12 +24,12 @@ model.summary()
 # callbacks: early-stopping, tensorboard
 log_dir = "./logs/autoencoder_conv2d_resblock/" + datetime.now().strftime("%Y%m%d_%H%M")
 callbacks = [
-    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=10),
+    tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-3, verbose=True, patience=1),
     tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.03, momentum=0.9, nesterov=True),
+model.compile(optimizer=tf.keras.optimizers.Adadelta(lr=0.1),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
@@ -37,6 +37,7 @@ model.compile(optimizer=tf.keras.optimizers.SGD(lr=0.03, momentum=0.9, nesterov=
 
 history = model.fit(train_dataset,
                     epochs=50,
+                    verbose=1,
                     callbacks=callbacks,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,

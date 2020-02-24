@@ -41,11 +41,11 @@ class ConvDenoisingUnet:
         # encoder
         # 1st downsampling
         conv1 = self.conv_block(conv0, 8, self.kernel_size)
-        downsample1 = self.conv_block(conv1, 8, self.kernel_size, strides=(2, 2), use_bias=False)
+        downsample1 = self.conv_block(conv1, 8, self.kernel_size, strides=(2, 2))
 
         # 2nd downsampling
         conv2 = self.conv_block(downsample1, 16, self.kernel_size)
-        downsample2 = self.conv_block(conv2, 16, self.kernel_size, strides=(2, 2), use_bias=False)
+        downsample2 = self.conv_block(conv2, 16, self.kernel_size, strides=(2, 2))
 
         # intermediate low dimensional features
         conv3 = self.conv_block(downsample2, 32, self.kernel_size)

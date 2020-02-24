@@ -34,14 +34,14 @@ class Conv1dDAE:
         crop_end = diff - crop_start
         return tensor[:, crop_start:-crop_end, :]
 
-    def conv1d_bn(self,
-                  input_tensor,
-                  filters,
-                  kernel_size,
-                  strides=1,
-                  padding='same',
-                  kernel_initializer='he_normal',
-                  kernel_regularizer=None):
+    def conv1d(self,
+               input_tensor,
+               filters,
+               kernel_size,
+               strides=1,
+               padding='same',
+               kernel_initializer='he_normal',
+               kernel_regularizer=None):
         x = keras.layers.Conv1D(filters,
                                 kernel_size,
                                 strides=strides,
@@ -50,7 +50,7 @@ class Conv1dDAE:
                                 use_bias=False,
                                 kernel_initializer=kernel_initializer,
                                 kernel_regularizer=kernel_regularizer)(input_tensor)
-        x = keras.layers.BatchNormalization(axis=-1)(x)
+        x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
         output = keras.layers.LeakyReLU(0.01)(x)
         return output
 
@@ -62,21 +62,21 @@ class Conv1dDAE:
         each frequency bin is a feature dimension, similar to channel numbers in conv2d situation
         """
         transposed_spectrogram = keras.Input(shape=(self.frames, self.bins))
-        x = self.conv1d_bn(transposed_spectrogram, 64, 1)
+        x = self.conv1d(transposed_spectrogram, 64, 1)
         # downsampling
-        x = self.conv1d_bn(transposed_spectrogram, 64, kernel_size)
+        x = self.conv1d(transposed_spectrogram, 64, kernel_size)
         x = keras.layers.MaxPool1D(2)(x)
-        x = self.conv1d_bn(x, 32, kernel_size)
+        x = self.conv1d(x, 32, kernel_size)
         x = keras.layers.MaxPool1D(2)(x)
         # intermiate low dimension features
-        x = self.conv1d_bn(x, 32, kernel_size)
+        x = self.conv1d(x, 32, kernel_size)
         # upsampling
         x = keras.layers.UpSampling1D(2)(x)
-        x = self.conv1d_bn(x, 32, kernel_size)
+        x = self.conv1d(x, 32, kernel_size)
         x = keras.layers.UpSampling1D(2)(x)
-        x = self.conv1d_bn(x, 64, kernel_size)
+        x = self.conv1d(x, 64, kernel_size)
 
-        reconstructed = self.conv1d_bn(x, self.bins, 1)
+        reconstructed = self.conv1d(x, self.bins, 1)
         reshaped = keras.layers.Reshape((self.bins, self.frames))(reconstructed)
         return keras.Model(inputs=[transposed_spectrogram], outputs=[reshaped], name=name)
 

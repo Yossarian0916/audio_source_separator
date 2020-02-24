@@ -1,11 +1,11 @@
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-import tensorflow.keras.backend as K
 
 
 class AutoenocderConv2dResblock:
-    def __init__(self, freq_bins, time_frames, kernel_size):
+    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3)):
         self.bins = freq_bins
         self.frames = time_frames
         self.summary = dict()
@@ -59,7 +59,7 @@ class AutoenocderConv2dResblock:
                    kernel_size,
                    kernel_initializer='he_normal',
                    kernel_regularizer=None):
-        """residual block built with identity skip connection"""
+        """residual block built with convolutional skip connection, used to change input tensor shape"""
         filter1, filter2, filter3 = filters
         if keras.backend.image_data_format() == 'channels_last':
             bn_axis = 3
@@ -101,8 +101,8 @@ class AutoenocderConv2dResblock:
         output = keras.layers.Add()([x, shortcut])
         return output
 
-    def get_model(self, data_format='channels_last', name='autoencoder_conv2d_resblock'):
-        """autoencoder structure, consists of resnet identity blocks"""
+    def get_model(self, data_format='channels_last', name='conv_spectrogram_resnet_autoencoder'):
+        """autoencoder with resnet as encoder"""
         # input tensor shape: (batch, height, width, channels)
         tf.keras.backend.set_image_data_format(data_format)
         # dataset spectrogram output tensor shape: (batch, frequency_bins, time_frames)
@@ -113,7 +113,7 @@ class AutoenocderConv2dResblock:
                                     activation='relu', use_bias=False)(reshaped_input)
         bn0 = keras.layers.BatchNormalization()(conv0)
 
-        filters_set = [[16 << i, 16 << i, 32 << i] for i in range(4)]
+        filters_set = [[4 << i, 4 << i, 8 << i] for i in range(4)]
         # downsampling
         # Conv1 + residual identity block + maxpooling
         conv1 = self.conv_block(bn0, filters_set[0], self.kernel_size)
@@ -219,7 +219,7 @@ class AutoenocderConv2dResblock:
     def load_weights(self, path):
         raise NotImplementedError
 
-    def save_model_plot(self, file_name='autoencoder_conv2d_resblock_separator.png'):
+    def save_model_plot(self, file_name='conv2d_resnet_autoencoder_separator.png'):
         if self.model is not None:
             root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
             images_dir = os.path.join(root_dir, 'images')
@@ -230,8 +230,8 @@ class AutoenocderConv2dResblock:
 
     def model_summary(self):
         if self.model is not None:
-            trainable_count = np.sum([K.count_params(w) for w in self.model.trainable_weights])
-            non_trainable_count = np.sum([K.count_params(w) for w in self.model.non_trainable_weights])
+            trainable_count = np.sum([keras.backend.count_params(w) for w in self.model.trainable_weights])
+            non_trainable_count = np.sum([keras.backend.count_params(w) for w in self.model.non_trainable_weights])
             self.summary = {
                 'total_parameters': trainable_count + non_trainable_count,
                 'trainable_parameters': trainable_count,

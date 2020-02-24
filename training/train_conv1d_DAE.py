@@ -30,7 +30,7 @@ callbacks = [
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0003),
+model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.001),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
@@ -38,7 +38,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0003),
 
 history = model.fit(train_dataset,
                     epochs=50,
-                    verbose=1,
+                    verbose=2,
                     callbacks=callbacks,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,

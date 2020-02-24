@@ -97,7 +97,7 @@ def rebuild_audio_from_spectro_clips(audio_clips, phase_clips=None, is_dB_format
     return reconstructed
 
 
-def get_filenames(path):
+def get_data_dir_filenames(path):
     current_path = os.path.abspath(__file__)
     utils_path = os.path.dirname(current_path)
     root = os.path.dirname(utils_path)

@@ -25,12 +25,11 @@ def tfrecord2dataset(filenames,
                      shuffle=True,
                      repeat_epochs=None,
                      n_readers=cpu_cores,
-                     n_parse_threads=cpu_cores,
-                     shuffle_buffer_size=20000):
+                     n_parse_threads=cpu_cores):
     dataset = tf.data.TFRecordDataset(filenames)
     # for perfect shuffling, the buffer size should be greater than the full size of the dataset
     if shuffle:
-        dataset.shuffle(shuffle_buffer_size)
+        dataset.shuffle(len(filenames))
     # repeat the dataset endless times
     dataset = dataset.repeat(repeat_epochs)
     # concurrently parse each tfrecord

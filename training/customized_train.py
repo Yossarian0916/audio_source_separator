@@ -3,7 +3,7 @@ from tensorflow import keras
 from datetime import datetime
 import os
 import sys
-from utils.helper import get_filenames
+from utils.helper import get_data_dir_filenames
 from utils.dataset import tfrecord2dataset
 
 
@@ -12,10 +12,8 @@ def load_dsd100_dataset(batch_size):
     root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
     data_dir = os.path.join(root, 'data')
     # parse tfrecords
-    dsd100_train_dir = os.path.join(data_dir, 'dsd100_train_tfrecords')
-    dsd100_train_tfrecords = get_filenames(dsd100_train_dir+'/*')
-    dsd100_test_dir = os.path.join(data_dir, 'dsd100_test_tfrecords')
-    dsd100_test_tfrecords = get_filenames(dsd100_test_dir+'/*')
+    dsd100_train_tfrecords = get_data_dir_filenames('dsd100_train_tfrecords'+'/*')
+    dsd100_test_tfrecords = get_data_dir_filenames('dsd100_test_tfrecords'+'/*')
     # training dataset
     train_tfrecords = dsd100_train_tfrecords + \
         dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]

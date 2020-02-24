@@ -1,12 +1,11 @@
 import os
-from utils.helper import get_filenames
+from utils.helper import get_data_dir_filenames
 from utils.dataset import tfrecord2dataset
 
 
 class DSD100Dataset:
     def __init__(self, batch_size):
         self.batch_size = batch_size
-        self.data_dir = self.get_data_dir()
         self.train_dataset = None
         self.valid_dataset = None
         self.test_dataset = None
@@ -52,26 +51,17 @@ class DSD100Dataset:
 
     def build_train_dataset(self, train_tfrecords):
         if train_tfrecords is not None:
-            self.train_dataset = tfrecord2dataset(
-                train_tfrecords, self.batch_size)
+            self.train_dataset = tfrecord2dataset(train_tfrecords, self.batch_size)
 
     def build_valid_dataset(self, valid_tfrecords):
         if valid_tfrecords is not None:
-            self.valid_dataset = tfrecord2dataset(
-                valid_tfrecords, self.batch_size, shuffle=False)
+            self.valid_dataset = tfrecord2dataset(valid_tfrecords, self.batch_size)
 
     def build_test_dataset(self, test_tfrecords):
         if test_tfrecords is not None:
-            self.test_dataset = tfrecord2dataset(
-                test_tfrecords, self.batch_size, shuffle=False)
-
-    def get_data_dir(self):
-        root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-        return os.path.join(root_dir, 'data')
+            self.test_dataset = tfrecord2dataset(test_tfrecords, self.batch_size, shuffle=False)
 
     def get_tfrecords(self):
-        dsd100_train_dir = os.path.join(self.data_dir, 'dsd100_train_stft')
-        dsd100_test_dir = os.path.join(self.data_dir, 'dsd100_test_stft')
-        dsd100_train_tfrecords = get_filenames(dsd100_train_dir+'/*')
-        dsd100_test_tfrecords = get_filenames(dsd100_test_dir+'/*')
+        dsd100_train_tfrecords = get_data_dir_filenames('dsd100_train_stft'+'/*')
+        dsd100_test_tfrecords = get_data_dir_filenames('dsd100_test_stft'+'/*')
         return dsd100_train_tfrecords, dsd100_test_tfrecords

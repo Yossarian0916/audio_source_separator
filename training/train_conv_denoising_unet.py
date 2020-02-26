@@ -32,20 +32,20 @@ callbacks = [
 ]
 
 # BEGIN TRAINING
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0003),
+model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.0002),
               loss={'vocals': tf.keras.losses.MeanSquaredError(),
                     'bass': tf.keras.losses.MeanSquaredError(),
                     'drums': tf.keras.losses.MeanSquaredError(),
                     'other': tf.keras.losses.MeanSquaredError()})
 
 history = model.fit(train_dataset,
-                    epochs=50,
+                    epochs=100,
                     verbose=2,
                     callbacks=callbacks,
                     validation_data=valid_dataset,
                     steps_per_epoch=train_data_size // BATCH_SIZE,
                     validation_steps=valid_data_size // BATCH_SIZE,
-                    validation_freq=5)
+                    validation_freq=10)
 
 model.evaluate(test_dataset, steps=test_data_size // BATCH_SIZE)
 # save model
@@ -56,3 +56,7 @@ saved_model_dir = os.path.join(root, 'saved_model')
 saved_model_name = os.path.join(saved_model_dir, 'conv_denoising_unet?time={}.h5'.format(date_time))
 model.save(saved_model_name)
 print("\nModel Saved Successful!")
+saved_weight_dir = os.path.join(root, 'saved_model', 'weight_checkpoints')
+saved_weights_name = os.path.join(saved_weight_dir, 'conv_denoising_unet?time={}.h5'.format(date_time))
+model.save_weights(saved_weights_name)
+print("\nModel Weights Saved Successful!")

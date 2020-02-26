@@ -19,17 +19,17 @@ class ConvDenoisingUnet:
                    kernel_size,
                    strides=(1, 1),
                    padding='same',
-                   use_bias=True,
+                   use_bias=False,
                    kernel_initializer='he_normal',
-                   kernel_regularizer=None):
+                   kernel_regularizer=keras.regularizers.l2(0.01)):
         x = keras.layers.Conv2D(filters,
                                 kernel_size,
                                 strides=strides,
                                 padding=padding,
-                                activation='relu',
                                 use_bias=use_bias,
                                 kernel_initializer=kernel_initializer,
                                 kernel_regularizer=kernel_regularizer)(input_tensor)
+        x = keras.layers.LeakyReLU()(x)
         x = keras.layers.BatchNormalization()(x, training=True)
         return x
 
@@ -37,7 +37,7 @@ class ConvDenoisingUnet:
         """crop-and-concat features as skip connection, fully convolutional structure"""
         spectrogram = keras.Input(shape=(self.bins, self.frames, 1))
 
-        conv0 = self.conv_block(spectrogram, 4, self.kernel_size)
+        conv0 = self.conv_block(spectrogram, 4, (1, 1))
         # encoder
         # 1st downsampling
         conv1 = self.conv_block(conv0, 8, self.kernel_size)
@@ -49,31 +49,32 @@ class ConvDenoisingUnet:
 
         # intermediate low dimensional features
         conv3 = self.conv_block(downsample2, 32, self.kernel_size)
-        conv4 = self.conv_block(conv3, 64, self.kernel_size)
-        conv5 = self.conv_block(conv4, 32, self.kernel_size)
+        conv4 = self.conv_block(conv3, 32, self.kernel_size)
 
         # decoder
-        # 4th upsampling
-        upsample1 = keras.layers.UpSampling2D((2, 2))(conv5)
-        conv6 = self.conv_block(util.crop_and_concat(upsample1, conv2), 16, self.kernel_size)
+        # 1st upsampling
+        upsample1 = keras.layers.UpSampling2D((2, 2))(conv4)
+        conv5 = self.conv_block(util.crop_and_concat(upsample1, conv2), 16, self.kernel_size)
 
-        # 5th upsampling
-        upsample2 = keras.layers.UpSampling2D((2, 2))(conv6)
-        conv7 = self.conv_block(util.crop_and_concat(upsample2, conv1), 8, self.kernel_size)
+        # 2nd upsampling
+        upsample2 = keras.layers.UpSampling2D((2, 2))(conv5)
+        conv6 = self.conv_block(util.crop_and_concat(upsample2, conv1), 8, self.kernel_size)
 
         # output layers
-        output = self.conv_block(conv7, 1, self.kernel_size)
+        output = self.conv_block(conv6, 1, kernel_size=(1, 1))
         return keras.Model(inputs=[spectrogram], outputs=[output], name=name)
 
     def get_model(self, name='conv_denoising_unet'):
+        # dataset spectrogram output tensor shape: (batch, frequency_bins, time_frames)
+        # add one extra channel dimension to match model required tensor shape
         spectrogram = keras.Input(shape=(self.bins, self.frames), name='mix')
         reshaped_spectrogram = tf.expand_dims(spectrogram, axis=-1)
 
         vocals = self.unet(name='vocals')(reshaped_spectrogram)
         bass = self.unet(name='bass')(reshaped_spectrogram)
         drums = self.unet(name='drums')(reshaped_spectrogram)
-        other = keras.layers.Subtract(name='other')([reshaped_spectrogram, (vocals + bass + drums)])
-        #other = self.unet(name='other')(reshaped_spectrogram)
+        #other = keras.layers.Subtract(name='other')([reshaped_spectrogram, (vocals + bass + drums)])
+        other = self.unet(name='other')(reshaped_spectrogram)
 
         self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=name)
         return self.model

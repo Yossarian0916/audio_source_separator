@@ -7,6 +7,8 @@ import os
 from models.conv1d_DAE import Conv1dDAE
 from training.make_dataset import DSD100Dataset
 
+
+tf.get_logger().setLevel('ERROR')
 # hyper-parameter
 BATCH_SIZE = 32
 
@@ -53,3 +55,7 @@ saved_model_dir = os.path.join(root, 'saved_model')
 saved_model_name = os.path.join(saved_model_dir, 'conv1d_DAE?time={}.h5'.format(date_time))
 model.save(saved_model_name)
 print("\nModel Saved Successful!")
+saved_weight_dir = os.path.join(root, 'saved_model', 'weight_checkpoints')
+saved_weights_name = os.path.join(saved_weight_dir, 'conv1d_DAE?time={}.h5'.format(date_time))
+model.save_weights(saved_weights_name)
+print("\nModel Weights Saved Successful!")

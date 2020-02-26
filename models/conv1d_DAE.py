@@ -62,7 +62,7 @@ class Conv1dDAE:
         each frequency bin is a feature dimension, similar to channel numbers in conv2d situation
         """
         transposed_spectrogram = keras.Input(shape=(self.frames, self.bins))
-        x = self.conv1d(transposed_spectrogram, 64, 1)
+        x = self.conv1d(transposed_spectrogram, 32, 1)
         # downsampling
         x = self.conv1d(transposed_spectrogram, 64, kernel_size)
         x = keras.layers.MaxPool1D(2)(x)
@@ -86,9 +86,9 @@ class Conv1dDAE:
         transposed_spectrogram = keras.layers.Reshape((self.frames, self.bins))(spectrogram)
 
         # denoising autoencoders, each autoencoder to separate one stem track
-        vocals = self.autoencoder(kernel_size=5, name='vocals')(transposed_spectrogram)
-        bass = self.autoencoder(kernel_size=5, name='bass')(transposed_spectrogram)
-        drums = self.autoencoder(kernel_size=5, name='drums')(transposed_spectrogram)
+        vocals = self.autoencoder(kernel_size=3, name='vocals')(transposed_spectrogram)
+        bass = self.autoencoder(kernel_size=3, name='bass')(transposed_spectrogram)
+        drums = self.autoencoder(kernel_size=3, name='drums')(transposed_spectrogram)
         other = keras.layers.Subtract(name='other')([spectrogram, (vocals + bass + drums)])
 
         self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=name)

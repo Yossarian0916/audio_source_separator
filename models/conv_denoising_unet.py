@@ -1,17 +1,12 @@
-import os
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+from models.model_template import SeparatorModel
 import models.util as util
 
 
-class ConvDenoisingUnet:
-    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3)):
-        self.bins = freq_bins
-        self.frames = time_frames
-        self.summary = dict()
-        self.model = None
-        self.kernel_size = kernel_size
+class ConvDenoisingUnet(SeparatorModel):
+    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3), name='conv_denoising_unet'):
+        super(ConvDenoisingUnet, self).__init__(freq_bins, time_frames, kernel_size, name)
 
     def conv_block(self,
                    input_tensor,
@@ -21,7 +16,7 @@ class ConvDenoisingUnet:
                    padding='same',
                    use_bias=False,
                    kernel_initializer='he_normal',
-                   kernel_regularizer=keras.regularizers.l2(0.01)):
+                   kernel_regularizer=keras.regularizers.l2(0.001)):
         x = keras.layers.Conv2D(filters,
                                 kernel_size,
                                 strides=strides,
@@ -64,7 +59,7 @@ class ConvDenoisingUnet:
         output = self.conv_block(conv6, 1, kernel_size=(1, 1))
         return keras.Model(inputs=[spectrogram], outputs=[output], name=name)
 
-    def get_model(self, name='conv_denoising_unet'):
+    def get_model(self):
         # dataset spectrogram output tensor shape: (batch, frequency_bins, time_frames)
         # add one extra channel dimension to match model required tensor shape
         spectrogram = keras.Input(shape=(self.bins, self.frames), name='mix')
@@ -76,42 +71,5 @@ class ConvDenoisingUnet:
         #other = keras.layers.Subtract(name='other')([reshaped_spectrogram, (vocals + bass + drums)])
         other = self.unet(name='other')(reshaped_spectrogram)
 
-        self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=name)
+        self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=self.name)
         return self.model
-
-    def save_weights(self, path):
-        pass
-
-    def load_weights(self, path):
-        pass
-
-    def save_model_plot(self, file_name='conv_denoising_unet.png'):
-        if self.model is not None:
-            root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-            images_dir = os.path.join(root_dir, 'images')
-            if not os.path.exists(images_dir):
-                os.mkdir(images_dir)
-            file_path = os.path.join(images_dir, file_name)
-            keras.utils.plot_model(self.model, file_path)
-        else:
-            raise ValueError(
-                "no model has been built yet! call get_model() first!")
-
-    def model_summary(self):
-        if self.model is not None:
-            trainable_count = np.sum([keras.backend.count_params(w)
-                                      for w in self.model.trainable_weights])
-            non_trainable_count = np.sum(
-                [keras.backend.count_params(w) for w in self.model.non_trainable_weights])
-            self.summary = {
-                'total_parameters': trainable_count + non_trainable_count,
-                'trainable_parameters': trainable_count,
-                'non_trainable_parameters': non_trainable_count}
-        else:
-            raise ValueError(
-                "no model has been built yet! call get_model() first!")
-
-    def __str__(self):
-        return self.summary
-
-    __repr__ = __str__

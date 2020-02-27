@@ -1,17 +1,12 @@
-import os
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+from models.model_template import SeparatorModel
 import models.util as util
 
 
-class ConvEncoderDenoisingDecoder:
-    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3)):
-        self.bins = freq_bins
-        self.frames = time_frames
-        self.summary = dict()
-        self.model = None
-        self.kernel_size = kernel_size
+class ConvEncoderDenoisingDecoder(SeparatorModel):
+    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3), name='conv_denoising_unet'):
+        super(ConvEncoderDenoisingDecoder, self).__init__(freq_bins, time_frames, kernel_size, name)
 
     def conv_block(self,
                    input_tensor,
@@ -21,7 +16,7 @@ class ConvEncoderDenoisingDecoder:
                    padding='same',
                    use_bias=True,
                    kernel_initializer='he_normal',
-                   kernel_regularizer=None):
+                   kernel_regularizer=keras.regularizers.l2(0.001)):
         x = keras.layers.Conv2D(filters,
                                 kernel_size,
                                 strides=strides,
@@ -61,10 +56,11 @@ class ConvEncoderDenoisingDecoder:
         # 3rd upsampling
         upsample3 = keras.layers.UpSampling2D((2, 2))(x)
         x = self.conv_block(util.crop_and_concat(upsample3, conv1), 4, self.kernel_size)
-        output = keras.layers.Conv2D(1, kernel_size=(1, 1), padding='same', activation='relu', kernel_initializer='he_normal', name=name)(x)
+        output = keras.layers.Conv2D(1, kernel_size=(1, 1), padding='same', activation='relu',
+                                     kernel_initializer='he_normal', name=name)(x)
         return output
 
-    def get_model(self, name='conv_denoising_unet'):
+    def get_model(self):
         spectrogram = keras.Input(shape=(self.bins, self.frames), name='mix')
         reshaped_spectrogram = tf.expand_dims(spectrogram, axis=-1)
 
@@ -74,42 +70,5 @@ class ConvEncoderDenoisingDecoder:
         drums = self.decoder((latent, conv3, conv2, conv1), name='drums')
         other = self.decoder((latent, conv3, conv2, conv1), name='other')
 
-        self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=name)
+        self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=self.name)
         return self.model
-
-    def save_weights(self, path):
-        pass
-
-    def load_weights(self, path):
-        pass
-
-    def save_model_plot(self, file_name='conv_encoder_denoising_decoder.png'):
-        if self.model is not None:
-            root_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
-            images_dir = os.path.join(root_dir, 'images')
-            if not os.path.exists(images_dir):
-                os.mkdir(images_dir)
-            file_path = os.path.join(images_dir, file_name)
-            keras.utils.plot_model(self.model, file_path)
-        else:
-            raise ValueError(
-                "no model has been built yet! call get_model() first!")
-
-    def model_summary(self):
-        if self.model is not None:
-            trainable_count = np.sum([keras.backend.count_params(w)
-                                      for w in self.model.trainable_weights])
-            non_trainable_count = np.sum(
-                [keras.backend.count_params(w) for w in self.model.non_trainable_weights])
-            self.summary = {
-                'total_parameters': trainable_count + non_trainable_count,
-                'trainable_parameters': trainable_count,
-                'non_trainable_parameters': non_trainable_count}
-        else:
-            raise ValueError(
-                "no model has been built yet! call get_model() first!")
-
-    def __str__(self):
-        return self.summary
-
-    __repr__ = __str__

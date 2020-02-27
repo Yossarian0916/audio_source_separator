@@ -4,6 +4,7 @@ import multiprocessing as mp
 import os
 import sys
 from utils.helper import wav_to_spectrogram_clips, wav_to_log_spectrogram_clips
+from utils import module_path
 
 
 # config parameters
@@ -12,10 +13,7 @@ cpu_cores = mp.cpu_count()
 
 
 def get_filepath(basename, stem_type, dataset_name):
-    current_path = os.path.abspath(__file__)
-    utils_path = os.path.dirname(current_path)
-    root = os.path.dirname(utils_path)
-    data_dir = os.path.join(root, 'data')
+    data_dir = module_path.get_data_path()
     filepath = os.path.join(data_dir, dataset_name, stem_type, basename)
     return filepath
 
@@ -145,10 +143,7 @@ def create_samples(basename='Dev', dataset_name='DSD100', feat_names=feat_names)
 
 def generate_tfrecords_files(usage, transform):
     # get data wav files
-    current_path = os.path.abspath(__file__)
-    utils_path = os.path.dirname(current_path)
-    root = os.path.dirname(utils_path)
-    data_dir = os.path.join(root, 'data')
+    data_dir = module_path.get_data_path()
     # create one audio sample for training and test
     if usage == 'train':
         samples = create_samples(basename='Dev')
@@ -164,8 +159,7 @@ def generate_tfrecords_files(usage, transform):
     else:
         raise ValueError("transform_fn should be of type string, value is 'stft' or 'logstft'")
     # define output dataset directory
-    output_dir = os.path.join(
-        data_dir, 'dsd100_{}_{}'.format(usage, transform))
+    output_dir = os.path.join(data_dir, 'dsd100_{}_{}'.format(usage, transform))
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     print('output path: ', output_dir,  '\n......')

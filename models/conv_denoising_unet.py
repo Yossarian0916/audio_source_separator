@@ -68,7 +68,7 @@ class ConvDenoisingUnet(SeparatorModel):
         vocals = self.unet(name='vocals')(reshaped_spectrogram)
         bass = self.unet(name='bass')(reshaped_spectrogram)
         drums = self.unet(name='drums')(reshaped_spectrogram)
-        #other = keras.layers.Subtract(name='other')([reshaped_spectrogram, (vocals + bass + drums)])
+        # other = keras.layers.Subtract(name='other')([reshaped_spectrogram, (vocals + bass + drums)])
         other = self.unet(name='other')(reshaped_spectrogram)
 
         self.model = keras.Model(inputs=[spectrogram], outputs=[vocals, bass, drums, other], name=self.name)

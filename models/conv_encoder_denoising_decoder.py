@@ -5,7 +5,7 @@ import models.util as util
 
 
 class ConvEncoderDenoisingDecoder(SeparatorModel):
-    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3), name='conv_denoising_unet'):
+    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3), name='conv_encoder_denoising_decoder'):
         super(ConvEncoderDenoisingDecoder, self).__init__(freq_bins, time_frames, kernel_size, name)
 
     def conv_block(self,

@@ -36,7 +36,7 @@ class TrainLoop:
         self.prepare_dataset()
         # optimizer
         if self.optimizer is None:
-            self.optimizer = tf.keras.optimizers.Adam(lr=0.0002)
+            self.optimizer = tf.keras.optimizers.Adam(lr=0.0003)
         # loss functions
         loss = {'vocals': tf.keras.losses.MeanSquaredError(),
                 'bass': tf.keras.losses.MeanSquaredError(),
@@ -75,8 +75,8 @@ class TrainLoop:
         # save model weights only
         saved_model_dir = module_path.get_saved_model_path()
         saved_weight_dir = os.path.join(saved_model_dir, 'weight_checkpoints')
-        saved_weights_name = os.path.join(saved_weight_dir, 'conv_denoising_unet?time={}.h5'.format(self.timestamp))
-        model.save_weights(saved_weights_name)
+        saved_weights_name = os.path.join(saved_weight_dir, self.model_name+'?time={}.h5'.format(self.timestamp))
+        self.model.save_weights(saved_weights_name)
         print("\nModel Weights Saved Successful!")
 
     def get_datetime(self):

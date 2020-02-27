@@ -4,7 +4,8 @@ from training.train_loop import TrainLoop
 
 
 separator = ConvEncoderDenoisingDecoder(1025, 100)
-training = TrainLoop(separator, batch_size=32, max_epochs=200)
+optimizer = tf.keras.optimizers.Adam(lr=0.0003)
+training = TrainLoop(separator, batch_size=32, max_epochs=200, optimizer=optimizer)
 
 
 if __name__ == '__main__':

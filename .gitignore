@@ -5,6 +5,7 @@ data/
 notebooks/checkpoints/
 notebooks/logs/
 training/logs/
+env/
 
 # remove pycharm settings
 .idea/

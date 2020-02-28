@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from models.model_template import SeparatorModel
+from models.separator_model import SeparatorModel
 import models.util as util
 
 

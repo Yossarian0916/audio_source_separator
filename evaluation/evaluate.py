@@ -1,6 +1,6 @@
 import os
 import sys
-import dsdtools
+import mir_eval
 import tensorflow as tf
 
 

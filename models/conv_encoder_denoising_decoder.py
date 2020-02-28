@@ -5,8 +5,14 @@ import models.util as util
 
 
 class ConvEncoderDenoisingDecoder(SeparatorModel):
-    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3), name='conv_encoder_denoising_decoder'):
+    def __init__(self, freq_bins, time_frames,
+                 kernel_size=(3, 3),
+                 kernel_initializer='he_normal',
+                 regularization=keras.regularizers.l2(0.001),
+                 name='conv_encoder_denoising_decoder'):
         super(ConvEncoderDenoisingDecoder, self).__init__(freq_bins, time_frames, kernel_size, name)
+        self.kernel_initializer = kernel_initializer
+        self.kernel_regularization = regularization
 
     def conv_block(self,
                    input_tensor,
@@ -14,17 +20,15 @@ class ConvEncoderDenoisingDecoder(SeparatorModel):
                    kernel_size,
                    strides=(1, 1),
                    padding='same',
-                   use_bias=True,
-                   kernel_initializer='he_normal',
-                   kernel_regularizer=keras.regularizers.l2(0.001)):
+                   use_bias=True):
         x = keras.layers.Conv2D(filters,
                                 kernel_size,
                                 strides=strides,
                                 padding=padding,
                                 activation='relu',
                                 use_bias=use_bias,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(input_tensor)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(input_tensor)
         x = keras.layers.BatchNormalization()(x, training=True)
         return x
 

@@ -5,15 +5,19 @@ import models.util as util
 
 
 class ConvResblockDenoisingUnet(SeparatorModel):
-    def __init__(self, freq_bins, time_frames, kernel_size=(3, 3), name='conv_resblock_denoising_unet'):
+    def __init__(self, freq_bins, time_frames,
+                 kernel_size=(3, 3),
+                 kernel_initialzer='he_normal',
+                 regularization=keras.regularizers.l2(0.001),
+                 name='conv_resblock_denoising_unet'):
         super(ConvResblockDenoisingUnet, self).__init__(freq_bins, time_frames, kernel_size, name)
+        self.kernel_initializer = kernel_initialzer
+        self.kernel_regularization = regularization
 
     def identity_block(self,
                        input_tensor,
                        filters,
-                       kernel_size,
-                       kernel_initializer='he_normal',
-                       kernel_regularizer=keras.regularizers.l2(0.01)):
+                       kernel_size):
         """residual block built with identity skip connection"""
         filter1, filter2, filter3 = filters
         # kernel: (1, 1) layer
@@ -21,24 +25,24 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         x = keras.layers.LeakyReLU()(x)
         x = keras.layers.Conv2D(filter1, (1, 1), padding='same',
                                 use_bias=False,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(x)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: kernel_size layer
         x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
         x = keras.layers.LeakyReLU()(x)
         x = keras.layers.Conv2D(filter2, kernel_size, padding='same',
                                 use_bias=False,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(x)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: (1, 1) layer
         x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
         x = keras.layers.LeakyReLU()(x)
         x = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                 use_bias=False,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(x)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(x)
         output = keras.layers.Add()([x, input_tensor])
         return output
 
@@ -46,9 +50,7 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                    input_tensor,
                    filters,
                    kernel_size,
-                   strides=(2, 2),
-                   kernel_initializer='he_normal',
-                   kernel_regularizer=keras.regularizers.l2(0.01)):
+                   strides=(2, 2)):
         """
         residual block with (average pooling + convolution) skip connection, 
         changing input tensor channels,
@@ -60,24 +62,24 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         x = keras.layers.LeakyReLU()(x)
         x = keras.layers.Conv2D(filter1, (1, 1), padding='same',
                                 use_bias=False,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(x)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: kernel_size layer
         x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
         x = keras.layers.LeakyReLU()(x)
         x = keras.layers.Conv2D(filter2, kernel_size, strides=strides, padding='same',
                                 use_bias=False,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(x)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: (1, 1) layer
         x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
         x = keras.layers.LeakyReLU()(x)
         x = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                 use_bias=False,
-                                kernel_initializer=kernel_initializer,
-                                kernel_regularizer=kernel_regularizer)(x)
+                                kernel_initializer=self.kernel_initializer,
+                                kernel_regularizer=self.kernel_regularizer)(x)
         # skip connection, change the input tensor feature channels
         if strides == (2, 2):
             shortcut = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(input_tensor)
@@ -87,8 +89,8 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         shortcut = keras.layers.LeakyReLU()(shortcut)
         shortcut = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                        use_bias=False,
-                                       kernel_initializer=kernel_initializer,
-                                       kernel_regularizer=kernel_regularizer)(shortcut)
+                                       kernel_initializer=self.kernel_initializer,
+                                       kernel_regularizer=self.kernel_regularizer)(shortcut)
         output = keras.layers.Add()([x, shortcut])
         return output
 

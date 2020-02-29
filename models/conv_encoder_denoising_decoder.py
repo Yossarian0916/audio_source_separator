@@ -8,7 +8,7 @@ class ConvEncoderDenoisingDecoder(SeparatorModel):
     def __init__(self, freq_bins, time_frames,
                  kernel_size=(3, 3),
                  kernel_initializer='he_normal',
-                 regularization=keras.regularizers.l2(0.001),
+                 regularization=keras.regularizers.l1(0.001),
                  name='conv_encoder_denoising_decoder'):
         super(ConvEncoderDenoisingDecoder, self).__init__(freq_bins, time_frames, kernel_size, name)
         self.kernel_initializer = kernel_initializer

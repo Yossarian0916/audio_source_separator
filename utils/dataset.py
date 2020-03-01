@@ -25,13 +25,16 @@ def tfrecord2dataset(filenames,
                      n_readers=cpu_cores,
                      n_parse_threads=cpu_cores):
     dataset = tf.data.TFRecordDataset(filenames)
+    # concurrently parse each tfrecord
+    dataset = dataset.map(parse_records, num_parallel_calls=n_parse_threads)
+    # caches elements in local file
+    cache_file = os.path.join(module_path.get_data_path(), 'model_training_dataset_cache')
+    dataset = dataset.cache(cache_file)
     # for perfect shuffling, the buffer size should be greater than the full size of the dataset
     if shuffle:
         dataset.shuffle(len(filenames))
     # repeat the dataset endless times
     dataset = dataset.repeat(repeat_epochs)
-    # concurrently parse each tfrecord
-    dataset = dataset.map(parse_records, num_parallel_calls=n_parse_threads)
     # create batches
     dataset = dataset.batch(batch_size)
     return dataset

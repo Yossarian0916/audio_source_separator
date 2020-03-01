@@ -5,7 +5,7 @@ from training.train_loop import TrainLoop
 
 separator = ConvDenoisingUnet(1025, 100)
 optimizer = tf.keras.optimizers.Adam(lr=0.0002)
-training = TrainLoop(separator, batch_size=32, max_epochs=100, optimzier=optimizer)
+training = TrainLoop(separator, batch_size=32, max_epochs=100, optimizer=optimizer)
 
 
 if __name__ == '__main__':

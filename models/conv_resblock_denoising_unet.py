@@ -7,12 +7,12 @@ import models.util as util
 class ConvResblockDenoisingUnet(SeparatorModel):
     def __init__(self, freq_bins, time_frames,
                  kernel_size=(3, 3),
-                 kernel_initialzer='he_normal',
+                 kernel_initializer='he_normal',
                  regularization=keras.regularizers.l1(0.001),
                  name='conv_resblock_denoising_unet'):
         super(ConvResblockDenoisingUnet, self).__init__(freq_bins, time_frames, kernel_size, name)
-        self.kernel_initializer = kernel_initialzer
-        self.kernel_regularization = regularization
+        self.kernel_initializer = kernel_initializer
+        self.kernel_regularizer = regularization
 
     def identity_block(self,
                        input_tensor,
@@ -107,11 +107,11 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         spectrogram = keras.Input(shape=(self.bins, self.frames, 1))
         conv0 = keras.layers.Conv2D(4, (1, 1), padding='same',
                                     activation='relu', use_bias=False,
-                                    kernel_intializer=self.kernel_initializer,
-                                    kernel_regularizer=self.kernel_regularization)(spectrogram)
+                                    kernel_initializer=self.kernel_initializer,
+                                    kernel_regularizer=self.kernel_regularizer)(spectrogram)
         block0 = self.residual_block(conv0, [1, 1, 4])
 
-        filters_set = [[4 << i, 4 << i, 8 << i] for i in range(4)]
+        filters_set = [[8 << i, 8 << i, 16 << i] for i in range(4)]
         # encoder
         # residual block, 1st downsampling
         block1 = self.residual_block(block0, filters_set[0], downsample=True)
@@ -140,7 +140,7 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         output = keras.layers.Conv2D(1, (1, 1), padding='same',
                                      activation='relu', use_bias=False,
                                      kernel_initializer=self.kernel_initializer,
-                                     kernel_regularizer=self.kernel_regularization)(output)
+                                     kernel_regularizer=self.kernel_regularizer)(output)
         return keras.Model(inputs=[spectrogram], outputs=[output], name=name)
 
     def get_model(self):

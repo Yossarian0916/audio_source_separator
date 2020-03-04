@@ -12,7 +12,7 @@ from utils.dataset import create_samples
 def get_separated_tracks(separator, mix_audio):
     # load mix music audio, average the stereo recording to single channel audio track
     # convert to spectrogram
-    sound, sr = librosa.load(mix_audio, sr=44100, mono=True, offset=20, duration=30)
+    sound, sr = librosa.load(mix_audio, sr=44100, mono=True, offset=30, duration=20)
     stft = librosa.stft(sound, n_fft=2048, hop_length=512, win_length=2048)
     mag, phase = librosa.magphase(stft)
     # chop magnitude of spectrogram into clips, each has 1025 bins, 100 frames
@@ -34,7 +34,7 @@ def get_reference_tracks(sample, track_shape):
     reference_tracks = list()
     feat_name = ['vocals', 'bass', 'drums', 'other']
     for feat in feat_name:
-        track, sr = librosa.load(sample[feat], sr=44100, mono=True, offset=20, duration=30)
+        track, sr = librosa.load(sample[feat], sr=44100, mono=True, offset=30, duration=20)
         # crop reference track to match separated track shape
         track = track[tuple(map(slice, track_shape))]
         reference_tracks.append(track)
@@ -43,7 +43,7 @@ def get_reference_tracks(sample, track_shape):
 
 def get_normalization_baseline(sample, track_shape):
     """return a list of ['mix', 'mix', 'mix', 'mix'] as normalization base"""
-    track, sr = librosa.load(sample['mix'], sr=44100, mono=True, offset=20, duration=30)
+    track, sr = librosa.load(sample['mix'], sr=44100, mono=True, offset=30, duration=20)
     # crop reference track to match separated track shape
     track = track[tuple(map(slice, track_shape))]
     baseline_tracks = [track] * 4
@@ -105,14 +105,18 @@ def main(pre_trained_model_path):
     # load the whole dsd100 dataset
     train_samples = create_samples('Dev')
     test_samples = create_samples('Test')
-    evaluation_samples = train_samples[10:] + test_samples
+    eval_samples = train_samples + test_samples
     # computing metrics
     print('\nGenerating evaluation metrics on dsd100 samples...')
-    for sample in evaluation_samples:
-        write_results_to_json(sample, separator, model_name=model_name)
+    for i in range(100):
+        try:
+            write_results_to_json(eval_samples[i], separator, model_name=model_name)
+        except (ValueError):
+            print(eval_samples[i]['name'] + ' is skipped')
+            continue
 
 
 if __name__ == '__main__':
-    # main('conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5')
-    main('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')
+    main('conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5')
+    # main('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')
     # main('conv_denoising_unet?time=20200223_0347.h5')

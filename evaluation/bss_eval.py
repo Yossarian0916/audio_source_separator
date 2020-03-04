@@ -9,10 +9,6 @@ from utils.helper import wav_to_spectrogram_clips, rebuild_audio_from_spectro_cl
 from utils.dataset import create_samples
 
 
-OFFSET = 10
-LENGTH = 90
-
-
 def get_separated_tracks(separator, mix_audio, offset=10, duration=90):
     # load mix music audio, average the stereo recording to single channel audio track
     # convert to spectrogram

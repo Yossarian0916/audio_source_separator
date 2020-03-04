@@ -1,8 +1,5 @@
-import functools
-import multiprocessing as mp
-import json
 import os
-import sys
+import json
 import librosa
 import mir_eval
 import numpy as np
@@ -11,20 +8,6 @@ from utils import module_path
 from utils.dataset import create_samples
 from utils.helper import wav_to_spectrogram_clips, rebuild_audio_from_spectro_clips
 from evaluation import metrics
-
-
-def load_model(path):
-    """load pre-trained model"""
-    try:
-        saved_model_path = module_path.get_saved_model_path()
-        pre_trained_models = os.listdir(saved_model_path)
-        if path in pre_trained_models:
-            separator = tf.keras.models.load_model(path)
-        else:
-            raise FileNotFoundError('no such pre-trained model .h5 file')
-    except (OSError, TypeError):
-        print('please check model file name!')
-    return separator
 
 
 def get_separated_tracks(separator, mix_audio):
@@ -108,8 +91,7 @@ def estimate_and_evaluate(sample, separator_model):
 
 def write_results_to_json(sample, separator, model_name):
     results = estimate_and_evaluate(sample, separator)
-    # release tensorflow model occupied memory
-    tf.keras.backend.clear_session()
+    print(results)
     # save evaluation results to .json file
     save_file_name = '_'.join(['eval', sample['name']]) + '.json'
     evaluation_path = module_path.get_evaluation_path()
@@ -122,24 +104,24 @@ def write_results_to_json(sample, separator, model_name):
 
 
 def main(pre_trained_model_path):
-    # load pre-trained model
-    separator = load_model(pre_trained_model_path)
     if pre_trained_model_path == '':
         raise AttributeError('the model path is empty!')
     else:
         _, model_name = os.path.split(pre_trained_model_path)
-    write_results_to_json_partial = functools.partial(
-        write_results_to_json, model=separator, model_name=model_name)
+    # load pre-trained model
+    try:
+        saved_model_path = module_path.get_saved_model_path()
+        model_path = os.path.join(saved_model_path, model_file_name)
+        separator = tf.keras.models.load_model(model_path)
+    except (OSError, TypeError, FileNotFoundError):
+        print('please check model file name!')
     # load the whole dsd100 dataset
     train_samples = create_samples('Dev')
     test_samples = create_samples('Test')
     evaluation_samples = train_samples + test_samples
-    # parallel computing
-    num_cores = os.cpu_count()
-    pool = mp.Pool(processes=num_cores)
-    result = pool.map_async(write_results_to_json_partial, evaluation_samples)
-    pool.close()
-    pool.join()
+    # computing metrics
+    for sample in evaluation_samples:
+        write_results_to_json(sample, separator, model_name=model_name)
 
 
 if __name__ == '__main__':

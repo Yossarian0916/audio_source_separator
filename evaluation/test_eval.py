@@ -12,7 +12,7 @@ from utils.dataset import create_samples
 def get_separated_tracks(separator, mix_audio):
     # load mix music audio, average the stereo recording to single channel audio track
     # convert to spectrogram
-    sound, sr = librosa.load(mix_audio, sr=44100, mono=True, offset=60, duration=10)
+    sound, sr = librosa.load(mix_audio, sr=44100, mono=True, offset=20, duration=30)
     stft = librosa.stft(sound, n_fft=2048, hop_length=512, win_length=2048)
     mag, phase = librosa.magphase(stft)
     # chop magnitude of spectrogram into clips, each has 1025 bins, 100 frames
@@ -34,7 +34,7 @@ def get_reference_tracks(sample, track_shape):
     reference_tracks = list()
     feat_name = ['vocals', 'bass', 'drums', 'other']
     for feat in feat_name:
-        track, sr = librosa.load(sample[feat], sr=44100, mono=True, offset=60, duration=10)
+        track, sr = librosa.load(sample[feat], sr=44100, mono=True, offset=20, duration=30)
         # crop reference track to match separated track shape
         track = track[tuple(map(slice, track_shape))]
         reference_tracks.append(track)
@@ -43,7 +43,7 @@ def get_reference_tracks(sample, track_shape):
 
 def get_normalization_baseline(sample, track_shape):
     """return a list of ['mix', 'mix', 'mix', 'mix'] as normalization base"""
-    track, sr = librosa.load(sample['mix'], sr=44100, mono=True, offset=60, duration=10)
+    track, sr = librosa.load(sample['mix'], sr=44100, mono=True, offset=20, duration=30)
     # crop reference track to match separated track shape
     track = track[tuple(map(slice, track_shape))]
     baseline_tracks = [track] * 4
@@ -79,15 +79,13 @@ def estimate_and_evaluate(sample, separator_model):
     return results
 
 
-def write_results_to_json(sample, separator):
+def write_results_to_json(sample, separator, model_name):
     results = estimate_and_evaluate(sample, separator)
     print(results)
-    # release tensorflow model occupied memory
-    tf.keras.backend.clear_session()
     # save evaluation results to .json file
     save_file_name = '_'.join(['eval', sample['name']]) + '.json'
     evaluation_path = module_path.get_evaluation_path()
-    save_results_path = os.path.join(evaluation_path, 'conv_encoder_denoising_decoder')
+    save_results_path = os.path.join(evaluation_path, model_name)
     if not os.path.exists(save_results_path):
         os.mkdir(save_results_path)
     save_results_json = os.path.join(save_results_path, save_file_name)
@@ -95,15 +93,26 @@ def write_results_to_json(sample, separator):
         json.dump(results, fd, sort_keys=True, indent=4)
 
 
-if __name__ == '__main__':
-    # load sample music
-    samples = create_samples('Dev')
-    test_sample = samples[0]
-    print('test sample name: ', test_sample['name'])
-    # laod separator model
+def main(pre_trained_model_path):
+    if pre_trained_model_path == '':
+        raise AttributeError('the model path is empty!')
+    else:
+        _, model_name = os.path.split(pre_trained_model_path)
+    # load pre-trained model
     saved_model_path = module_path.get_saved_model_path()
-    model_path = os.path.join(
-        saved_model_path, 'conv_encoder_denoising_decoder?time=20200224_0738.h5')
-    model = tf.keras.models.load_model(model_path)
-    # evaluation
-    write_results_to_json(test_sample, model)
+    model_path = os.path.join(saved_model_path, pre_trained_model_path)
+    separator = tf.keras.models.load_model(model_path)
+    # load the whole dsd100 dataset
+    train_samples = create_samples('Dev')
+    test_samples = create_samples('Test')
+    evaluation_samples = train_samples[10:] + test_samples
+    # computing metrics
+    print('\nGenerating evaluation metrics on dsd100 samples...')
+    for sample in evaluation_samples:
+        write_results_to_json(sample, separator, model_name=model_name)
+
+
+if __name__ == '__main__':
+    # main('conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5')
+    main('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')
+    # main('conv_denoising_unet?time=20200223_0347.h5')

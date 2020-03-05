@@ -68,7 +68,7 @@ def estimate_and_evaluate(sample, separator_model, offset, duration):
     baselines = get_normalization_baseline(sample, track_length, offset, duration)
     baselines = np.asarray(baselines)
     (baseline_sdr, baseline_sir, baseline_sar, _) = mir_eval.separation.bss_eval_sources(
-        baselines, estimates, compute_permutation=True)
+        references, baselines, compute_permutation=True)
     results = {
         'name': sample['name'],
         'sdr': sdr.tolist(),

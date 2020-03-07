@@ -9,12 +9,13 @@ from utils.helper import wav_to_spectrogram_clips, rebuild_audio_from_spectro_cl
 from utils.dataset import create_samples
 
 
-def get_separated_tracks(separator, mix_audio, offset=10, duration=90):
+def get_separated_tracks(separator, mix_audio, offset=0.0, duration=None):
     # load mix music audio, average the stereo recording to single channel audio track
     # convert to spectrogram
     sound, sr = librosa.load(mix_audio, sr=44100, mono=True, offset=offset, duration=duration)
     stft = librosa.stft(sound, n_fft=2048, hop_length=512, win_length=2048)
-    mag, phase = librosa.magphase(stft)
+    mag = np.abs(stft)
+    phase = np.angle(stft)
     # chop magnitude of spectrogram into clips, each has 1025 bins, 100 frames
     stft_clips = np.empty((0, 1025, 100))
     for i in range(mag.shape[1] // 100):
@@ -25,12 +26,14 @@ def get_separated_tracks(separator, mix_audio, offset=10, duration=90):
     # separated_spectrograms contains 4 stem tracks
     # the index of spectrograms: 0, 1, 2, 3 -> vocals, bass, drums, other
     for i in range(4):
-        separated_track = np.squeeze(separated_sepctrograms[i], axis=-1)
-        separated_tracks.append(rebuild_audio_from_spectro_clips(separated_track))
+        separated_spectrogram = np.squeeze(separated_sepctrograms[i], axis=-1)
+        spectrogram = np.concatenate(separated_spectrogram, axis=1)
+        reconstructed_track = librosa.istft(spectrogram, hop_length=512, win_length=2048)
+        separated_tracks.append(reconstructed_track)
     return separated_tracks
 
 
-def get_reference_tracks(sample, track_shape, offset=10, duration=90):
+def get_reference_tracks(sample, track_shape, offset=0.0, duration=None):
     reference_tracks = list()
     feat_name = ['vocals', 'bass', 'drums', 'other']
     for feat in feat_name:
@@ -41,7 +44,7 @@ def get_reference_tracks(sample, track_shape, offset=10, duration=90):
     return reference_tracks
 
 
-def get_normalization_baseline(sample, track_shape, offset=10, duration=90):
+def get_normalization_baseline(sample, track_shape, offset=0.0, duration=None):
     """return a list of ['mix', 'mix', 'mix', 'mix'] as normalization base"""
     track, sr = librosa.load(sample['mix'], sr=44100, mono=True, offset=offset, duration=duration)
     # crop reference track to match separated track shape
@@ -80,7 +83,7 @@ def estimate_and_evaluate(sample, separator_model, offset, duration):
 
 
 def write_results_to_json(sample, separator, model_name):
-    results = estimate_and_evaluate(sample, separator, offset=10, duration=90)
+    results = estimate_and_evaluate(sample, separator, offset=20.0, duration=60.0)
     print(results)
     # save evaluation results to .json file
     save_file_name = '_'.join(['eval', sample['name']]) + '.json'
@@ -117,6 +120,6 @@ def main(pre_trained_model_path):
 
 
 if __name__ == '__main__':
-    main('conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5')
+    main('conv_denoising_unet?time=20200306_1845.h5')
     # main('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')
     # main('conv_denoising_unet?time=20200223_0347.h5')

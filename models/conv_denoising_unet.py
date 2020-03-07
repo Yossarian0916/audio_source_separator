@@ -39,28 +39,36 @@ class ConvDenoisingUnet(SeparatorModel):
         conv0 = self.conv_block(spectrogram, 4, (1, 1))
         # encoder
         # 1st downsampling
-        conv1 = self.conv_block(conv0, 8, self.kernel_size)
-        downsample1 = self.conv_block(conv1, 8, self.kernel_size, strides=(2, 2))
+        conv1 = self.conv_block(conv0, 16, self.kernel_size)
+        downsample1 = self.conv_block(conv1, 16, self.kernel_size, strides=(2, 2))
 
         # 2nd downsampling
-        conv2 = self.conv_block(downsample1, 16, self.kernel_size)
-        downsample2 = self.conv_block(conv2, 16, self.kernel_size, strides=(2, 2))
+        conv2 = self.conv_block(downsample1, 32, self.kernel_size)
+        downsample2 = self.conv_block(conv2, 32, self.kernel_size, strides=(2, 2))
+
+        # 3rd downsampling
+        conv3 = self.conv_block(downsample2, 64, self.kernel_size)
+        downsample3 = self.conv_block(conv3, 64, self.kernel_size, strides=(2, 2))
 
         # intermediate low dimensional features
-        conv3 = self.conv_block(downsample2, 32, self.kernel_size)
-        conv4 = self.conv_block(conv3, 32, self.kernel_size)
+        conv4 = self.conv_block(downsample3, 128, self.kernel_size)
+        conv5 = self.conv_block(conv4, 128, self.kernel_size)
 
         # decoder
         # 1st upsampling
-        upsample1 = keras.layers.UpSampling2D((2, 2))(conv4)
-        conv5 = self.conv_block(util.crop_and_concat(upsample1, conv2), 16, self.kernel_size)
+        upsample1 = keras.layers.UpSampling2D((2, 2))(conv5)
+        conv6 = self.conv_block(util.crop_and_concat(upsample1, conv3), 64, self.kernel_size)
 
         # 2nd upsampling
-        upsample2 = keras.layers.UpSampling2D((2, 2))(conv5)
-        conv6 = self.conv_block(util.crop_and_concat(upsample2, conv1), 8, self.kernel_size)
+        upsample2 = keras.layers.UpSampling2D((2, 2))(conv6)
+        conv7 = self.conv_block(util.crop_and_concat(upsample2, conv2), 32, self.kernel_size)
+
+        # 3rd upsampling
+        upsample3 = keras.layers.UpSampling2D((2, 2))(conv7)
+        conv8 = self.conv_block(util.crop_and_concat(upsample3, conv1), 16, self.kernel_size)
 
         # output layers
-        output = self.conv_block(conv6, 1, kernel_size=(1, 1))
+        output = self.conv_block(conv8, 1, kernel_size=(1, 1))
         return keras.Model(inputs=[spectrogram], outputs=[output], name=name)
 
     def get_model(self):

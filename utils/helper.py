@@ -49,7 +49,8 @@ def rebuild_audio_from_spectro_clips(spectrogram_clips, is_dB_format=False):
     spectrogram = np.concatenate(spectrogram_clips, axis=1)
     if is_dB_format:
         spectrogram = librosa.db_to_amplitude(spectrogram)
-    reconstructed = librosa.griffinlim(spectrogram)
+    # reconstructed = librosa.griffinlim(spectrogram)
+    reconstructed = librosa.istft(spectrogram, hop_length=512, win_length=2048)
     return reconstructed
 
 

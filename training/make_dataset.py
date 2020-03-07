@@ -24,7 +24,7 @@ class DSD100Dataset:
         dsd100_train_tfrecords, dsd100_test_tfrecords = self.get_tfrecords()
         # define tfrecords for datasets
         self.train_tfrecords = dsd100_train_tfrecords
-        self.valid_tfrecords = dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//4]
+        self.valid_tfrecords = dsd100_test_tfrecords[:len(dsd100_test_tfrecords)//2]
         self.test_tfrecords = dsd100_test_tfrecords
         # build datasets
         self.build_train_dataset(self.train_tfrecords)

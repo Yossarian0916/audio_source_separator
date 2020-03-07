@@ -27,8 +27,11 @@ def boxplot_bss_eval_metrics(eval_results, save_name):
 
 def print_metrics_mean_value(model_name):
     # get eval results path
-    evaluation_path = module_path.get_evaluation_path()
-    eval_results_path = os.path.join(evaluation_path, model_name)
+    try:
+        evaluation_path = module_path.get_evaluation_path()
+        eval_results_path = os.path.join(evaluation_path, model_name)
+    except FileNotFoundError:
+        print("Wrong file path or wrong model file name")
     # to store results
     bss_metrics = ['sdr', 'sir', 'sar', 'nsdr']
     sum_values = {'sdr': [0]*4, 'sir': [0]*4, 'sar': [0]*4, 'nsdr': [0]*4}
@@ -54,9 +57,13 @@ def print_metrics_mean_value(model_name):
 def plot_model_eval_results(metric_name, model_name):
     boxplot_data = [list(), list(), list(), list()]
     # get eval results path
-    evaluation_path = module_path.get_evaluation_path()
-    eval_results_path = os.path.join(evaluation_path, model_name)
-    num_json_files = len(os.listdir(eval_results_file_dir))
+    try:
+        evaluation_path = module_path.get_evaluation_path()
+        eval_results_path = os.path.join(evaluation_path, model_name)
+    except FileNotFoundError:
+        print("Wrong file path or wrong model file name")
+    # store bss-eval-metric data
+    num_json_files = len(os.listdir(eval_results_path))
     for file in os.listdir(eval_results_path):
         filename = os.path.join(eval_results_path, file)
         with open(filename, 'r', encoding='utf-8') as fd:
@@ -69,7 +76,7 @@ def plot_model_eval_results(metric_name, model_name):
 
 
 if __name__ == '__main__':
-    model_name = 'conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5'
+    model_name = ''
     print_metrics_mean_value(model_name)
     for metric in ['sdr', 'sir', 'sar', 'nsdr']:
         plot_model_eval_results(metric, model_name)

@@ -43,7 +43,7 @@ def wav_to_log_spectrogram_clips(wav_file):
 
 
 def istft(mag_spectrogram_clips, phase_angle_clips):
-    magnitude = np.concatenate(spectrogram_clips, axis=1)
+    magnitude = np.concatenate(mag_spectrogram_clips, axis=1)
     phase_angle = np.concatenate(phase_angle_clips, axis=1)
     waveform = librosa.istft(magnitude * np.exp(1j * phase_angle), hop_length=HOP_LEN, win_length=WIN_LEN)
     return waveform

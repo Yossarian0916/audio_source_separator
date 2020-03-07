@@ -5,7 +5,37 @@ import mir_eval
 import numpy as np
 import tensorflow as tf
 from utils import module_path
+from utils.helper import istft
 from utils.dataset import create_samples
+
+
+# def get_separated_tracks(spectrogram_separator, phase_separator, mix_audio, offset=0.0, duration=None):
+#     # load mix music audio, average the stereo recording to single channel audio track
+#     # convert to spectrogram
+#     sound, sr = librosa.load(mix_audio, sr=44100, mono=True, offset=offset, duration=duration)
+#     stft = librosa.stft(sound, n_fft=2048, hop_length=512, win_length=2048)
+#     mag = np.abs(stft)
+#     phase_angle = np.angle(stft)
+#     # chop magnitude of spectrogram into clips, each has 1025 bins, 100 frames
+#     mag_clips = np.empty((0, 1025, 100))
+#     for i in range(mag.shape[1] // 100):
+#         mag_clips = np.concatenate((mag_clips, mag[np.newaxis, :, i * 100: (i + 1) * 100]))
+#     # chop phase angle of spectrogram into clips, each has 1025 bins, 100 frames
+#     phase_clips = np.empty((0, 1025, 100))
+#     for i in range(phase_angle.shape[1] // 100):
+#         phase_clips = np.concatenate((phase_clips, phase_angle[np.newaxis, :, i * 100: (i + 1) * 100]))
+#     # generated components spectrogram magnitude and phase_angle clips
+#     separated_sepctrograms = spectrogram_separator.predict(mag_clips)
+#     separated_phases = phase_separator.predict(phase_clips)
+#     # separated_spectrograms contains 4 stem tracks
+#     # the index of spectrograms: 0, 1, 2, 3 -> vocals, bass, drums, other
+#     separated_tracks = list()
+#     for i in range(4):
+#         separated_spectrogram_magnitude = np.squeeze(separated_sepctrograms[i], axis=-1)
+#         separated_spectrogram_phase_angle = np.squeeze(separated_phases[i], axis=-1)
+#         track_waveform = istft(separated_spectrogram_magnitude, separated_spectrogram_phase_angle)
+#         separated_tracks.append(track_waveform)
+#     return separated_tracks
 
 
 def get_separated_tracks(separator, mix_audio, offset=0.0, duration=None):
@@ -104,7 +134,10 @@ def main(pre_trained_model_path):
     # load pre-trained model
     saved_model_path = module_path.get_saved_model_path()
     model_path = os.path.join(saved_model_path, pre_trained_model_path)
-    separator = tf.keras.models.load_model(model_path)
+    try:
+        separator = tf.keras.models.load_model(model_path)
+    except OSError:
+        print('Please the saved model file name!')
     # load the whole dsd100 dataset
     train_samples = create_samples('Dev')
     test_samples = create_samples('Test')
@@ -120,4 +153,5 @@ def main(pre_trained_model_path):
 
 
 if __name__ == '__main__':
-    main('conv_denoising_unet?time=20200307_1423.h5')
+    # main('conv_denoising_unet?time=20200307_1423.h5')
+    main('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')

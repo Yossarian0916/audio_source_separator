@@ -19,6 +19,7 @@ class ConvDenoisingUnet(SeparatorModel):
                    filters,
                    kernel_size,
                    strides=(1, 1),
+                   relu_neg_slope=0,
                    padding='same',
                    use_bias=False):
         x = keras.layers.Conv2D(filters,
@@ -28,7 +29,7 @@ class ConvDenoisingUnet(SeparatorModel):
                                 use_bias=use_bias,
                                 kernel_initializer=self.kernel_initializer,
                                 kernel_regularizer=self.kernel_regularization)(input_tensor)
-        x = keras.layers.LeakyReLU()(x)
+        x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.BatchNormalization()(x, training=True)
         return x
 
@@ -36,22 +37,22 @@ class ConvDenoisingUnet(SeparatorModel):
         """crop-and-concat features as skip connection, fully convolutional structure"""
         spectrogram = keras.Input(shape=(self.bins, self.frames, 1))
 
-        conv0 = self.conv_block(spectrogram, 4, (1, 1))
+        conv0 = self.conv_block(spectrogram, 4, (1, 1), relu_neg_slope=0.2)
         # encoder
         # 1st downsampling
-        conv1 = self.conv_block(conv0, 16, self.kernel_size)
-        downsample1 = self.conv_block(conv1, 16, self.kernel_size, strides=(2, 2))
+        conv1 = self.conv_block(conv0, 16, self.kernel_size, relu_neg_slope=0.2)
+        downsample1 = self.conv_block(conv1, 16, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
 
         # 2nd downsampling
-        conv2 = self.conv_block(downsample1, 32, self.kernel_size)
-        downsample2 = self.conv_block(conv2, 32, self.kernel_size, strides=(2, 2))
+        conv2 = self.conv_block(downsample1, 32, self.kernel_size, relu_neg_slope=0.2)
+        downsample2 = self.conv_block(conv2, 32, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
 
         # 3rd downsampling
-        conv3 = self.conv_block(downsample2, 64, self.kernel_size)
-        downsample3 = self.conv_block(conv3, 64, self.kernel_size, strides=(2, 2))
+        conv3 = self.conv_block(downsample2, 64, self.kernel_size, relu_neg_slope=0.2)
+        downsample3 = self.conv_block(conv3, 64, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
 
         # intermediate low dimensional features
-        conv4 = self.conv_block(downsample3, 128, self.kernel_size)
+        conv4 = self.conv_block(downsample3, 128, self.kernel_size, relu_neg_slope=0.2)
         conv5 = self.conv_block(conv4, 128, self.kernel_size)
 
         # decoder

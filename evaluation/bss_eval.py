@@ -5,7 +5,6 @@ import mir_eval
 import numpy as np
 import tensorflow as tf
 from utils import module_path
-from utils.helper import wav_to_spectrogram_clips, rebuild_audio_from_spectro_clips
 from utils.dataset import create_samples
 
 
@@ -22,13 +21,14 @@ def get_separated_tracks(separator, mix_audio, offset=0.0, duration=None):
         stft_clips = np.concatenate((stft_clips, mag[np.newaxis, :, i * 100: (i + 1) * 100]))
     # separate components from the mix single channel music audio
     separated_sepctrograms = separator.predict(stft_clips)
-    separated_tracks = list()
     # separated_spectrograms contains 4 stem tracks
     # the index of spectrograms: 0, 1, 2, 3 -> vocals, bass, drums, other
+    separated_tracks = list()
     for i in range(4):
         separated_spectrogram = np.squeeze(separated_sepctrograms[i], axis=-1)
         spectrogram = np.concatenate(separated_spectrogram, axis=1)
-        reconstructed_track = librosa.istft(spectrogram, hop_length=512, win_length=2048)
+        phase = phase[tuple(map(slice, spectrogram.shape))]
+        reconstructed_track = librosa.istft(spectrogram * np.exp(1j * phase), hop_length=512, win_length=2048)
         separated_tracks.append(reconstructed_track)
     return separated_tracks
 
@@ -49,8 +49,8 @@ def get_normalization_baseline(sample, track_shape, offset=0.0, duration=None):
     track, sr = librosa.load(sample['mix'], sr=44100, mono=True, offset=offset, duration=duration)
     # crop reference track to match separated track shape
     track = track[tuple(map(slice, track_shape))]
-    baseline_tracks = [track] * 4
-    return baseline_tracks
+    mix_tracks = [track] * 4
+    return mix_tracks
 
 
 def estimate_and_evaluate(sample, separator_model, offset, duration):
@@ -64,14 +64,14 @@ def estimate_and_evaluate(sample, separator_model, offset, duration):
     references = np.asarray(reference_tracks)
     # run bss-eval
     (sdr, sir, sar, perm) = mir_eval.separation.bss_eval_sources(
-        references, estimates, compute_permutation=True)
+        references, estimates, compute_permutation=False)
     # get bss_eval metrics
     # between ['vocals', 'bass', 'drums', 'other'] and mixture ['mix', 'mix', 'mix', 'mix]
     # these metrics act as normalization baselines
-    baselines = get_normalization_baseline(sample, track_length, offset, duration)
-    baselines = np.asarray(baselines)
+    mix_tracks = get_normalization_baseline(sample, track_length, offset, duration)
+    mix_tracks = np.asarray(mix_tracks)
     (baseline_sdr, baseline_sir, baseline_sar, _) = mir_eval.separation.bss_eval_sources(
-        references, baselines, compute_permutation=True)
+        references, mix_tracks, compute_permutation=False)
     results = {
         'name': sample['name'],
         'sdr': sdr.tolist(),
@@ -83,7 +83,7 @@ def estimate_and_evaluate(sample, separator_model, offset, duration):
 
 
 def write_results_to_json(sample, separator, model_name):
-    results = estimate_and_evaluate(sample, separator, offset=20.0, duration=60.0)
+    results = estimate_and_evaluate(sample, separator, offset=30.0, duration=30.0)
     print(results)
     # save evaluation results to .json file
     save_file_name = '_'.join(['eval', sample['name']]) + '.json'
@@ -111,7 +111,7 @@ def main(pre_trained_model_path):
     eval_samples = test_samples + train_samples
     # computing metrics
     print('\nGenerating evaluation metrics on dsd100 samples...')
-    for i in range(100):
+    for i in range(len(eval_samples)):
         try:
             write_results_to_json(eval_samples[i], separator, model_name=model_name)
         except (ValueError):
@@ -120,6 +120,4 @@ def main(pre_trained_model_path):
 
 
 if __name__ == '__main__':
-    main('conv_denoising_unet?time=20200306_1845.h5')
-    # main('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')
-    # main('conv_denoising_unet?time=20200223_0347.h5')
+    main('conv_denoising_unet?time=20200307_1423.h5')

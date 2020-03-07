@@ -42,16 +42,23 @@ def wav_to_log_spectrogram_clips(wav_file):
     return db_spectro_clips
 
 
+def istft(mag_spectrogram_clips, phase_angle_clips):
+    magnitude = np.concatenate(spectrogram_clips, axis=1)
+    phase_angle = np.concatenate(phase_angle_clips, axis=1)
+    waveform = librosa.istft(magnitude * np.exp(1j * phase_angle), hop_length=HOP_LEN, win_length=WIN_LEN)
+    return waveform
+
+
 def rebuild_audio_from_spectro_clips(spectrogram_clips, is_dB_format=False):
+    """rebuild waveform solely from magnitude spectrogram"""
     # audio spectrogram format:
     # 1. normal stft spectromgram
     # 2. dB-scaled spectrogram log(epilon + S*2)
     spectrogram = np.concatenate(spectrogram_clips, axis=1)
     if is_dB_format:
         spectrogram = librosa.db_to_amplitude(spectrogram)
-    # reconstructed = librosa.griffinlim(spectrogram)
-    reconstructed = librosa.istft(spectrogram, hop_length=512, win_length=2048)
-    return reconstructed
+    waveform = librosa.istft(spectrogram, hop_length=HOP_LEN, win_length=WIN_LEN)
+    return waveform
 
 
 def get_data_dir_filenames(path):

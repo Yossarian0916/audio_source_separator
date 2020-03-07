@@ -10,7 +10,7 @@ from utils import module_path
 mpl.use('agg')
 
 
-def plot_eval_metrics(eval_results, save_name):
+def boxplot_bss_eval_metrics(eval_results, save_name):
     # create a figure instance
     fig = plt.figure(1, figsize=(9, 6))
     # create an axes instance
@@ -25,34 +25,51 @@ def plot_eval_metrics(eval_results, save_name):
     fig.savefig(filename, bbox_inches='tight')
 
 
-if __name__ == '__main__':
+def print_metrics_mean_value(model_name):
+    # get eval results path
     evaluation_path = module_path.get_evaluation_path()
-    # model_name = 'conv_denoising_unet?time=20200223_0347.h5'
-    # model_name = 'conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5'
-    model_name = 'conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5'
-    eval_results_file_dir = os.path.join(evaluation_path, model_name)
-    total_nsdr = [0] * 4
-    total_sdr = [0] * 4
-    total_sir = [0] * 4
-    total_sar = [0] * 4
-    nsdr_to_plot = [list(), list(), list(), list()]
-    music_pieces = len(os.listdir(eval_results_file_dir))
-    for file in os.listdir(eval_results_file_dir):
-        filename = os.path.join(eval_results_file_dir, file)
+    eval_results_path = os.path.join(evaluation_path, model_name)
+    # to store results
+    bss_metrics = ['sdr', 'sir', 'sar', 'nsdr']
+    sum_values = {'sdr': [0]*4, 'sir': [0]*4, 'sar': [0]*4, 'nsdr': [0]*4}
+    # calculate accumelated sum
+    num_json_files = len(os.listdir(eval_results_path))
+    for file in os.listdir(eval_results_path):
+        filename = os.path.join(eval_results_path, file)
+        with open(filename, 'r', encoding='utf-8') as fd:
+            bss_eval_results = json.load(fd)
+            for i in range(4):
+                for metric in bss_metrics:
+                    sum_values[metric][i] += bss_eval_results[metric][i]
+    # calculate mean values
+    mean_values = dict()
+    for metric in bss_metrics:
+        mean_values[metric] = [value / num_json_files for value in sum_values[metric]]
+    # print results
+    print('stem component order: [vocals, bass, drums, other]')
+    for metric in bss_metrics:
+        print('mean value of ' + metric + ' ' + mean_values[metric])
+
+
+def plot_model_eval_results(metric_name, model_name):
+    boxplot_data = [list(), list(), list(), list()]
+    # get eval results path
+    evaluation_path = module_path.get_evaluation_path()
+    eval_results_path = os.path.join(evaluation_path, model_name)
+    num_json_files = len(os.listdir(eval_results_file_dir))
+    for file in os.listdir(eval_results_path):
+        filename = os.path.join(eval_results_path, file)
         with open(filename, 'r', encoding='utf-8') as fd:
             eval_metrics = json.load(fd)
             for i in range(4):
-                total_nsdr[i] += eval_metrics['nsdr'][i]
-                total_sdr[i] += eval_metrics['sdr'][i]
-                total_sir[i] += eval_metrics['sir'][i]
-                total_sar[i] += eval_metrics['sar'][i]
-                nsdr_to_plot[i].append(eval_metrics['nsdr'][i])
-    average_nsdr = [nsdr / music_pieces for nsdr in total_nsdr]
-    average_sdr = [sdr / music_pieces for sdr in total_sdr]
-    average_sir = [sir / music_pieces for sir in total_sir]
-    average_sar = [sar / music_pieces for sar in total_sar]
-    print('average NSDR:', average_nsdr)
-    print('average SDR:', average_sdr)
-    print('average SIR:', average_sir)
-    print('average SAR:', average_sar)
-    # plot_eval_metrics(nsdr_to_plot, model_name)
+                boxplot_data[i].append(eval_metrics[metric_name][i])
+    # output boxplot figure
+    figure_name = metric_name + '_' + model_name
+    boxplot_bss_eval_metrics(boxplot_data, figure_name)
+
+
+if __name__ == '__main__':
+    model_name = 'conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5'
+    print_metrics_mean_value(model_name)
+    for metric in ['sdr', 'sir', 'sar', 'nsdr']:
+        plot_model_eval_results(metric, model_name)

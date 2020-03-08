@@ -73,7 +73,8 @@ def print_metrics_mean_value(model_name):
     print(model_name)
     print('stem component order: [vocals, bass, drums, other]')
     for metric in bss_metrics:
-        print('mean value of ' + metric + ' ', mean_values[metric])
+        print('average ' + metric + ': ', mean_values[metric])
+    print('\n')
 
 
 def plot_model_eval_results(metric_name, model_name):
@@ -100,8 +101,9 @@ def plot_model_eval_results(metric_name, model_name):
 
 
 if __name__ == '__main__':
-    model_name = 'conv_denoising_unet?time=20200307_1423.h5'
-    # model_name = 'conv_resblock_denoising_unet?time=20200307_1541.h5'
-    # model_name = 'conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5'
-    print_metrics_mean_value(model_name)
-    # plot_model_eval_results('nsdr', model_name)
+    models = ['conv_denoising_unet?time=20200307_1423.h5',
+              'conv_resblock_denoising_unet?time=20200308_1227.h5',
+              'conv_encoder_denoising_decoder?time=20200308_1448.h5']
+    for model in models:
+        print_metrics_mean_value(model)
+    # plot_model_eval_results('nsdr', model)

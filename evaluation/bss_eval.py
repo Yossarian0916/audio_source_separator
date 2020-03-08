@@ -154,5 +154,5 @@ def main(pre_trained_model_path):
 
 if __name__ == '__main__':
     # main('conv_denoising_unet?time=20200307_1423.h5')
-    # zmain('conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5')
-    main('conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5')
+    # main('conv_encoder_denoising_decoder?time=20200308_1448.h5')
+    main('conv_resblock_denoising_unet?time=20200308_1227.h5')

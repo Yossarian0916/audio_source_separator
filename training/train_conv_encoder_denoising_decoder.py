@@ -4,8 +4,10 @@ from training.train_loop import TrainLoop
 
 
 separator = ConvEncoderDenoisingDecoder(1025, 100)
-optimizer = tf.keras.optimizers.Adam(lr=0.0003)
-training = TrainLoop(separator, batch_size=32, max_epochs=200, optimizer=optimizer)
+lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=0.0005, decay_steps=4000, decay_rate=0.5, staircase=True)
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+training = TrainLoop(separator, batch_size=32, max_epochs=50, optimizer=optimizer)
 
 
 if __name__ == '__main__':

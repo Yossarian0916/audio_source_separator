@@ -5,13 +5,13 @@ from training.train_loop import TrainLoop
 
 separator = ConvResblockDenoisingUnet(1025, 100)
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=0.0003, decay_steps=10000, decay_rate=0.1)
+    initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.5)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-training = TrainLoop(separator, batch_size=8, max_epochs=10, optimizer=optimizer)
+training = TrainLoop(separator, batch_size=8, max_epochs=20, optimizer=optimizer)
 
 
 if __name__ == '__main__':
-    history = training.compile_and_fit(validation_freq=1, verbose=2)
+    history = training.compile_and_fit(validation_freq=5, verbose=2)
     training.evaluate()
     training.save_model()
     training.save_weights()

@@ -54,7 +54,6 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                    input_tensor,
                    filters,
                    kernel_size,
-                   strides=(2, 2),
                    relu_neg_slope=0):
         """
         residual block with (average pooling + convolution) skip connection,
@@ -75,7 +74,7 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         # x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
         x = keras.layers.LayerNormalization()(x)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
-        x = keras.layers.Conv2D(filter2, kernel_size, strides=strides, padding='same',
+        x = keras.layers.Conv2D(filter2, kernel_size, padding='same',
                                 use_bias=False,
                                 kernel_initializer=self.kernel_initializer,
                                 kernel_regularizer=self.kernel_regularizer)(x)
@@ -89,12 +88,8 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                                 kernel_initializer=self.kernel_initializer,
                                 kernel_regularizer=self.kernel_regularizer)(x)
         # skip connection, change the input tensor feature channels
-        if strides == (2, 2):
-            shortcut = keras.layers.MaxPooling2D(pool_size=(2, 2), padding='same')(input_tensor)
-        elif strides == (1, 1):
-            shortcut = input_tensor
-        # shortcut = keras.layers.BatchNormalization(axis=-1)(shortcut, training=True)
-        shortcut = keras.layers.LayerNormalization()(shortcut)
+        # shortcut = keras.layers.BatchNormalization(axis=-1)(input_tensor, training=True)
+        shortcut = keras.layers.LayerNormalization()(input_tensor)
         shortcut = keras.layers.ReLU(negative_slope=relu_neg_slope)(shortcut)
         shortcut = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                        use_bias=False,
@@ -105,12 +100,13 @@ class ConvResblockDenoisingUnet(SeparatorModel):
 
     def residual_block(self, input_tensor, filters, downsample=False):
         if downsample:
-            x = self.conv_block(input_tensor, filters, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
-            x = self.identity_block(x, filters, self.kernel_size, relu_neg_slope=0.2)
+            x = self.conv_block(input_tensor, filters, self.kernel_size, relu_neg_slope=0.3)
+            x = self.identity_block(x, filters, self.kernel_size, relu_neg_slope=0.3)
+            x = self.identity_block(x, filters, self.kernel_size, relu_neg_slope=0.3)
         else:
-            x = self.conv_block(input_tensor, filters, self.kernel_size, strides=(1, 1))
+            x = self.conv_block(input_tensor, filters, self.kernel_size)
             x = self.identity_block(x, filters, self.kernel_size)
-        # x = self.identity_block(x, filters, self.kernel_size)
+            x = self.identity_block(x, filters, self.kernel_size)
         return x
 
     def resblock_unet(self, name=None):
@@ -124,36 +120,40 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         # encoder
         # residual block, 1st downsampling
         block1 = self.residual_block(conv1, filters_set[0], downsample=True)
+        downsample1 = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(block1)
         # residual block, 2nd downsampling
         block2 = self.residual_block(block1, filters_set[1], downsample=True)
+        downsample2 = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(block2)
         # residual block, 3rd downsampling
         block3 = self.residual_block(block2, filters_set[2], downsample=True)
+        downsample3 = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(block3)
 
         # latent tensor, compressed low dimensional features
         latent = keras.layers.Conv2D(128, self.kernel_size, padding='same',
-                                     activation=None, use_bias=False,
+                                     activation=None, use_bias=True,
                                      kernel_initializer=self.kernel_initializer,
-                                     kernel_regularizer=self.kernel_regularizer)(block3)
+                                     kernel_regularizer=self.kernel_regularizer)(downsample3)
         latent = keras.layers.ReLU(negative_slope=0.2)(latent)
+        latent = keras.layers.LayerNormalization()(latent)
         latent = keras.layers.Conv2D(128, self.kernel_size, padding='same',
-                                     activation=None, use_bias=False,
+                                     activation=None, use_bias=True,
                                      kernel_initializer=self.kernel_initializer,
                                      kernel_regularizer=self.kernel_regularizer)(latent)
-        latent = keras.layers.ReLU(negative_slope=0.2)(latent)
+        latent = keras.layers.ReLU()(latent)
         # decoder
         # 1st upsampling + residual block
         upsample1 = keras.layers.UpSampling2D((2, 2))(latent)
-        block5 = self.residual_block(util.crop_and_concat(upsample1, block2), filters_set[2])
+        block5 = self.residual_block(util.crop_and_concat(upsample1, block3), filters_set[2])
         # 2nd upsampling + residual block
         upsample2 = keras.layers.UpSampling2D((2, 2))(block5)
-        block6 = self.residual_block(util.crop_and_concat(upsample2, block1), filters_set[1])
+        block6 = self.residual_block(util.crop_and_concat(upsample2, block2), filters_set[1])
         # residual block + 3rd upsampling
         upsample3 = keras.layers.UpSampling2D((2, 2))(block6)
-        block7 = self.residual_block(util.crop_and_concat(upsample3, conv1), filters_set[0])
+        block7 = self.residual_block(util.crop_and_concat(upsample3, block1), filters_set[0])
 
         # output layers
         output = keras.layers.Conv2D(1, (1, 1), padding='same',
-                                     activation=None, use_bias=False,
+                                     activation=None, use_bias=True,
                                      kernel_initializer=self.kernel_initializer,
                                      kernel_regularizer=self.kernel_regularizer)(block7)
         output = keras.layers.ReLU()(output)

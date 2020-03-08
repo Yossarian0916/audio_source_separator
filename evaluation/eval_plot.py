@@ -100,8 +100,8 @@ def plot_model_eval_results(metric_name, model_name):
 
 
 if __name__ == '__main__':
-    # model_name = 'conv_denoising_unet?time=20200307_1423.h5'
+    model_name = 'conv_denoising_unet?time=20200307_1423.h5'
     # model_name = 'conv_resblock_denoising_unet?time=20200307_1541.h5'
-    model_name = 'conv_encoder_denoising_decoder?time=20200227_0838_l2_weight_regularization.h5'
-    # print_metrics_mean_value(model_name)
-    plot_model_eval_results('nsdr', model_name)
+    # model_name = 'conv_res56_denoising_unet?time=20200227_0646_l2_reg.h5'
+    print_metrics_mean_value(model_name)
+    # plot_model_eval_results('nsdr', model_name)

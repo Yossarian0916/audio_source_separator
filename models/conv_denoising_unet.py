@@ -8,7 +8,7 @@ class ConvDenoisingUnet(SeparatorModel):
     def __init__(self, freq_bins, time_frames,
                  kernel_size=(3, 3),
                  kernel_initializer='he_normal',
-                 regularization=keras.regularizers.l1(0.001),
+                 regularization=keras.regularizers.l2(0.001),
                  name='conv_denoising_unet'):
         super(ConvDenoisingUnet, self).__init__(freq_bins, time_frames, kernel_size, name)
         self.kernel_initializer = kernel_initializer
@@ -19,7 +19,7 @@ class ConvDenoisingUnet(SeparatorModel):
                    filters,
                    kernel_size,
                    strides=(1, 1),
-                   relu_neg_slope=0,
+                   relu_neg_slope=0.3,
                    padding='same',
                    use_bias=False):
         x = keras.layers.Conv2D(filters,
@@ -37,22 +37,22 @@ class ConvDenoisingUnet(SeparatorModel):
         """crop-and-concat features as skip connection, fully convolutional structure"""
         spectrogram = keras.Input(shape=(self.bins, self.frames, 1))
 
-        conv0 = self.conv_block(spectrogram, 4, (1, 1), relu_neg_slope=0.2)
+        conv0 = self.conv_block(spectrogram, 4, (1, 1))
         # encoder
         # 1st downsampling
-        conv1 = self.conv_block(conv0, 16, self.kernel_size, relu_neg_slope=0.2)
-        downsample1 = self.conv_block(conv1, 16, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
+        conv1 = self.conv_block(conv0, 16, self.kernel_size)
+        downsample1 = self.conv_block(conv1, 16, self.kernel_size, strides=(2, 2))
 
         # 2nd downsampling
-        conv2 = self.conv_block(downsample1, 32, self.kernel_size, relu_neg_slope=0.2)
-        downsample2 = self.conv_block(conv2, 32, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
+        conv2 = self.conv_block(downsample1, 32, self.kernel_size)
+        downsample2 = self.conv_block(conv2, 32, self.kernel_size, strides=(2, 2))
 
         # 3rd downsampling
-        conv3 = self.conv_block(downsample2, 64, self.kernel_size, relu_neg_slope=0.2)
-        downsample3 = self.conv_block(conv3, 64, self.kernel_size, strides=(2, 2), relu_neg_slope=0.2)
+        conv3 = self.conv_block(downsample2, 64, self.kernel_size)
+        downsample3 = self.conv_block(conv3, 64, self.kernel_size, strides=(2, 2))
 
         # intermediate low dimensional features
-        conv4 = self.conv_block(downsample3, 128, self.kernel_size, relu_neg_slope=0.2)
+        conv4 = self.conv_block(downsample3, 128, self.kernel_size)
         conv5 = self.conv_block(conv4, 128, self.kernel_size)
 
         # decoder
@@ -69,7 +69,7 @@ class ConvDenoisingUnet(SeparatorModel):
         conv8 = self.conv_block(util.crop_and_concat(upsample3, conv1), 16, self.kernel_size)
 
         # output layers
-        output = self.conv_block(conv8, 1, kernel_size=(1, 1))
+        output = self.conv_block(conv8, 1, kernel_size=(1, 1), relu_neg_slope=0.0)
         return keras.Model(inputs=[spectrogram], outputs=[output], name=name)
 
     def get_model(self):

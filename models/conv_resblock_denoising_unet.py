@@ -18,12 +18,12 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                        input_tensor,
                        filters,
                        kernel_size,
-                       relu_neg_slope=0):
+                       relu_neg_slope=0.0):
         """residual block built with identity skip connection"""
         filter1, filter2, filter3 = filters
         # kernel: (1, 1) layer
-        # x = keras.layers.BatchNormalization(axis=-1)(input_tensor, training=True)
-        x = keras.layers.LayerNormalization()(input_tensor)
+        x = keras.layers.BatchNormalization()(input_tensor, training=True)
+        # x = keras.layers.LayerNormalization()(input_tensor)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.Conv2D(filter1, (1, 1), padding='same',
                                 use_bias=False,
@@ -31,8 +31,8 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                                 kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: kernel_size layer
-        # x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
-        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.BatchNormalization()(x, training=True)
+        # x = keras.layers.LayerNormalization()(x)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.Conv2D(filter2, kernel_size, padding='same',
                                 use_bias=False,
@@ -40,8 +40,8 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                                 kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: (1, 1) layer
-        # x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
-        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.BatchNormalization()(x, training=True)
+        # x = keras.layers.LayerNormalization()(x)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                 use_bias=False,
@@ -54,7 +54,7 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                    input_tensor,
                    filters,
                    kernel_size,
-                   relu_neg_slope=0):
+                   relu_neg_slope=0.0):
         """
         residual block with (average pooling + convolution) skip connection,
         changing input tensor channels,
@@ -62,8 +62,8 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         """
         filter1, filter2, filter3 = filters
         # kernel: (1, 1) layer
-        # x = keras.layers.BatchNormalization(axis=-1)(input_tensor, training=True)
-        x = keras.layers.LayerNormalization()(input_tensor)
+        x = keras.layers.BatchNormalization()(input_tensor, training=True)
+        # x = keras.layers.LayerNormalization()(input_tensor)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.Conv2D(filter1, (1, 1), padding='same',
                                 use_bias=False,
@@ -71,8 +71,8 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                                 kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: kernel_size layer
-        # x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
-        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.BatchNormalization()(x, training=True)
+        # x = keras.layers.LayerNormalization()(x)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.Conv2D(filter2, kernel_size, padding='same',
                                 use_bias=False,
@@ -80,16 +80,16 @@ class ConvResblockDenoisingUnet(SeparatorModel):
                                 kernel_regularizer=self.kernel_regularizer)(x)
 
         # kernel: (1, 1) layer
-        # x = keras.layers.BatchNormalization(axis=-1)(x, training=True)
-        x = keras.layers.LayerNormalization()(x)
+        x = keras.layers.BatchNormalization()(x, training=True)
+        # x = keras.layers.LayerNormalization()(x)
         x = keras.layers.ReLU(negative_slope=relu_neg_slope)(x)
         x = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                 use_bias=False,
                                 kernel_initializer=self.kernel_initializer,
                                 kernel_regularizer=self.kernel_regularizer)(x)
         # skip connection, change the input tensor feature channels
-        # shortcut = keras.layers.BatchNormalization(axis=-1)(input_tensor, training=True)
-        shortcut = keras.layers.LayerNormalization()(input_tensor)
+        shortcut = keras.layers.BatchNormalization()(input_tensor, training=True)
+        # shortcut = keras.layers.LayerNormalization()(input_tensor)
         shortcut = keras.layers.ReLU(negative_slope=relu_neg_slope)(shortcut)
         shortcut = keras.layers.Conv2D(filter3, (1, 1), padding='same',
                                        use_bias=False,
@@ -99,47 +99,43 @@ class ConvResblockDenoisingUnet(SeparatorModel):
         return output
 
     def residual_block(self, input_tensor, filters, downsample=False):
-        if downsample:
-            x = self.conv_block(input_tensor, filters, self.kernel_size, relu_neg_slope=0.3)
-            x = self.identity_block(x, filters, self.kernel_size, relu_neg_slope=0.3)
-            x = self.identity_block(x, filters, self.kernel_size, relu_neg_slope=0.3)
-        else:
-            x = self.conv_block(input_tensor, filters, self.kernel_size)
-            x = self.identity_block(x, filters, self.kernel_size)
-            x = self.identity_block(x, filters, self.kernel_size)
+        x = self.conv_block(input_tensor, filters, self.kernel_size, relu_neg_slope=0.3)
+        x = self.identity_block(x, filters, self.kernel_size, relu_neg_slope=0.3)
         return x
 
     def resblock_unet(self, name=None):
+        keras.backend.set_image_data_format('channels_last')
         spectrogram = keras.Input(shape=(self.bins, self.frames, 1))
         conv1 = keras.layers.Conv2D(4, (1, 1), padding='same',
                                     activation='relu', use_bias=True,
                                     kernel_initializer=self.kernel_initializer,
                                     kernel_regularizer=self.kernel_regularizer)(spectrogram)
 
-        filters_set = [[8 << i, 8 << i, 16 << i] for i in range(3)]
+        filters_set = [[4 << i, 4 << i, 8 << i] for i in range(3)]
         # encoder
         # residual block, 1st downsampling
         block1 = self.residual_block(conv1, filters_set[0], downsample=True)
         downsample1 = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(block1)
         # residual block, 2nd downsampling
-        block2 = self.residual_block(block1, filters_set[1], downsample=True)
+        block2 = self.residual_block(downsample1, filters_set[1], downsample=True)
         downsample2 = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(block2)
         # residual block, 3rd downsampling
-        block3 = self.residual_block(block2, filters_set[2], downsample=True)
+        block3 = self.residual_block(downsample2, filters_set[2], downsample=True)
         downsample3 = keras.layers.AveragePooling2D(pool_size=(2, 2), padding='same')(block3)
 
         # latent tensor, compressed low dimensional features
-        latent = keras.layers.Conv2D(128, self.kernel_size, padding='same',
-                                     activation=None, use_bias=True,
+        latent = keras.layers.Conv2D(256, self.kernel_size, padding='same',
+                                     activation=None, use_bias=False,
                                      kernel_initializer=self.kernel_initializer,
                                      kernel_regularizer=self.kernel_regularizer)(downsample3)
-        latent = keras.layers.ReLU(negative_slope=0.2)(latent)
-        latent = keras.layers.LayerNormalization()(latent)
-        latent = keras.layers.Conv2D(128, self.kernel_size, padding='same',
+        latent = keras.layers.ReLU(negative_slope=0.3)(latent)
+        latent = keras.layers.BatchNormalization()(latent, training=True)
+        # latent = keras.layers.LayerNormalization()(latent)
+        latent = keras.layers.Conv2D(256, self.kernel_size, padding='same',
                                      activation=None, use_bias=True,
                                      kernel_initializer=self.kernel_initializer,
                                      kernel_regularizer=self.kernel_regularizer)(latent)
-        latent = keras.layers.ReLU()(latent)
+        latent = keras.layers.ReLU(negative_slope=0.3)(latent)
         # decoder
         # 1st upsampling + residual block
         upsample1 = keras.layers.UpSampling2D((2, 2))(latent)

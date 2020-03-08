@@ -5,9 +5,9 @@ from training.train_loop import TrainLoop
 
 separator = ConvResblockDenoisingUnet(1025, 100)
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-    initial_learning_rate=0.0002, decay_steps=10000, decay_rate=0.5)
+    initial_learning_rate=0.0002, decay_steps=4000, decay_rate=0.5)
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-training = TrainLoop(separator, batch_size=8, max_epochs=20, optimizer=optimizer)
+training = TrainLoop(separator, batch_size=16, max_epochs=20, optimizer=optimizer)
 
 
 if __name__ == '__main__':

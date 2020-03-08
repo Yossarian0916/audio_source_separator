@@ -62,7 +62,7 @@ class TrainLoop:
         return history
 
     def evaluate(self):
-        self.model.evaluate(self.test_dataset, steps=self.test_data_size // self.batch_size)
+        self.model.evaluate(self.test_dataset, steps=self.test_data_size // self.batch_size, verbose=2)
 
     def save_model(self):
         # save model

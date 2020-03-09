@@ -103,7 +103,8 @@ def plot_model_eval_results(metric_name, model_name):
 if __name__ == '__main__':
     models = ['conv_denoising_unet?time=20200307_1423.h5',
               'conv_resblock_denoising_unet?time=20200308_1227.h5',
-              'conv_encoder_denoising_decoder?time=20200308_1448.h5']
+              'conv_encoder_denoising_decoder?time=20200308_1448.h5',
+              'conv_denoising_stacked_unet.h5']
     for model in models:
         print_metrics_mean_value(model)
     # plot_model_eval_results('nsdr', model)

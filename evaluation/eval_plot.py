@@ -55,7 +55,7 @@ def print_metrics_mean_value(model_name):
         print("Wrong file path or wrong model file name")
     # to store results
     bss_metrics = ['sdr', 'sir', 'sar', 'nsdr']
-    sum_values = {'sdr': [0]*4, 'sir': [0]*4, 'sar': [0]*4, 'nsdr': [0]*4}
+    sum_values = {'sdr': [0] * 4, 'sir': [0] * 4, 'sar': [0] * 4, 'nsdr': [0] * 4}
     # calculate accumelated sum
     num_json_files = len(os.listdir(eval_results_path))
     for file in os.listdir(eval_results_path):
@@ -101,10 +101,10 @@ def plot_model_eval_results(metric_name, model_name):
 
 
 if __name__ == '__main__':
-    models = ['conv_denoising_unet?time=20200307_1423.h5',
-              'conv_resblock_denoising_unet?time=20200308_1227.h5',
-              'conv_encoder_denoising_decoder?time=20200308_1448.h5',
-              'conv_denoising_stacked_unet.h5']
-    for model in models:
-        print_metrics_mean_value(model)
-    # plot_model_eval_results('nsdr', model)
+    # models = ['conv_denoising_unet?time=20200307_1423.h5',
+    #           'conv_resblock_denoising_unet?time=20200308_1227.h5',
+    #           'conv_encoder_denoising_decoder?time=20200308_1448.h5',
+    #           'conv_denoising_stacked_unet.h5']
+    # for model in models:
+    #     print_metrics_mean_value(model)
+    plot_model_eval_results('sir', 'conv_denoising_stacked_unet.h5')

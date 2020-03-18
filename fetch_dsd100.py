@@ -1,6 +1,7 @@
 import os
-import requests
 from zipfile import ZipFile
+
+import requests
 
 
 # make data directory if not exists

@@ -110,7 +110,8 @@ def plot_model_eval_results(metric_name, model_name):
     boxplot_bss_eval_metrics(boxplot_data, figure_path, figure_title)
 
 
-def stem_track_eval_metric_model_comparison(metric_name, stem_track_name, models):
+def stem_track_eval_metric_model_comparison(
+        metric_name, stem_track_name, models):
     stem_tracks = {'vocals': 0, 'bass': 1, 'drums': 2, 'other': 3}
     stem_track_id = stem_tracks[stem_track_name]
     if isinstance(models, Iterable) and not isinstance(models, (str, bytes)):
@@ -168,9 +169,11 @@ if __name__ == '__main__':
               'conv_resblock_denoising_unet?time=20200308_1227.h5',
               'conv_encoder_denoising_decoder?time=20200308_1448.h5',
               'conv_denoising_stacked_unet.h5']
-    stem_track_eval_metric_model_comparison('nsdr', 'vocals', models) 
+    # stem_track_eval_metric_model_comparison('nsdr', 'vocals', models)
+
     # output average value of the bss-eval metrics for a given model
-    # for model in models:
-    #     print_metrics_mean_value(model)
+    for model in models:
+        print_metrics_mean_value(model)
+
     # generate boxplot for a given bss-eval metric and a given saved model
     # plot_model_eval_results('nsdr', 'conv_denoising_stacked_unet.h5')

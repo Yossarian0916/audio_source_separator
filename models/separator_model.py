@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
 import os
+from abc import ABC, abstractmethod
+
 import numpy as np
 from tensorflow import keras
+
 from utils import module_path
 
 
@@ -59,3 +61,4 @@ class SeparatorModel(ABC):
         return self.summary
 
     __repr__ = __str__
+

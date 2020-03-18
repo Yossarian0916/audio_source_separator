@@ -1,7 +1,10 @@
 import os
 from datetime import datetime
+from time import strftime
+
 import tensorflow as tf
 from tensorflow import keras
+
 from training.make_dataset import DSD100Dataset
 from utils import module_path
 
@@ -13,7 +16,6 @@ class TrainLoop:
         self.batch_size = batch_size
         self.optimizer = None
         self.max_epochs = max_epochs
-        self.timestamp = self.get_datetime()
 
     def prepare_dataset(self):
         dsd100_dataset = DSD100Dataset(batch_size=self.batch_size)
@@ -23,7 +25,7 @@ class TrainLoop:
     def get_callbacks(self):
         # callbacks: early-stopping, tensorboard
         training_module_path = module_path.get_training_path()
-        log_dir = os.path.join(training_module_path, "logs", self.model_name, self.timestamp)
+        log_dir = os.path.join(training_module_path, "logs", self.model_name, strftime('%Y%m%d_%H%M'))
         callbacks = [
             tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-6, patience=1),
             tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1),
@@ -67,7 +69,7 @@ class TrainLoop:
     def save_model(self):
         # save model
         saved_model_dir = module_path.get_saved_model_path()
-        saved_model_name = os.path.join(saved_model_dir, self.model_name+'?time={}.h5'.format(self.timestamp))
+        saved_model_name = os.path.join(saved_model_dir, self.model_name+'?time={}.h5'.format(strftime('%Y%m%d_%H%M')))
         self.model.save(saved_model_name)
         print("\nModel Saved Successful!")
 
@@ -75,9 +77,7 @@ class TrainLoop:
         # save model weights only
         saved_model_dir = module_path.get_saved_model_path()
         saved_weight_dir = os.path.join(saved_model_dir, 'weight_checkpoints')
-        saved_weights_name = os.path.join(saved_weight_dir, self.model_name+'?time={}.h5'.format(self.timestamp))
+        saved_weights_name = os.path.join(saved_weight_dir, self.model_name+'?time={}.h5'.format(strftime('%Y%m%d_%H%M')))
         self.model.save_weights(saved_weights_name)
         print("\nModel Weights Saved Successful!")
 
-    def get_datetime(self):
-        return datetime.now().strftime("%Y%m%d_%H%M")
